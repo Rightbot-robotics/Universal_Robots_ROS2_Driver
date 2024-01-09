@@ -63,11 +63,15 @@ int main(int argc, char** argv)
 
     // for calculating sleep time
     auto const period = std::chrono::nanoseconds(1'000'000'000 / controller_manager->get_update_rate());
+    RCLCPP_INFO(controller_manager->get_logger(), "Update rate: %u Hz", controller_manager->get_update_rate());
     auto const cm_now = std::chrono::nanoseconds(controller_manager->now().nanoseconds());
     std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> next_iteration_time{ cm_now };
 
     // for calculating the measured period of the loop
     rclcpp::Time previous_time = controller_manager->now();
+
+    int counter = 0, log_freq = 500;
+    float measured_period_sum = 0, measured_period_count = 0, average_period;
 
     while (rclcpp::ok()) {
       // calculate measured period
@@ -79,6 +83,19 @@ int main(int argc, char** argv)
       controller_manager->read(controller_manager->now(), measured_period);
       controller_manager->update(controller_manager->now(), measured_period);
       controller_manager->write(controller_manager->now(), measured_period);
+
+      counter++;
+      measured_period_sum += measured_period.seconds();
+      measured_period_count += 1.0;
+      if(counter % log_freq == 0) {
+        average_period = measured_period_sum / measured_period_count;
+        if(average_period > 0.0022) {
+          RCLCPP_WARN(controller_manager->get_logger(), "Average measured period seconds: %f", average_period);
+        }
+        counter = 0;
+        measured_period_sum = 0;
+        measured_period_count = 0;
+      }
 
       // wait until we hit the end of the period
       next_iteration_time += period;
