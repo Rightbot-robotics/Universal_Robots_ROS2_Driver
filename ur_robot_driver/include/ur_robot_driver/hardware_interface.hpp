@@ -224,6 +224,11 @@ protected:
   std::shared_ptr<std::thread> async_thread_;
 
   bool rtde_comm_has_been_started_ = false;
+
+  int read_fault = 0;
+  int loop_count = 0;
+  int max_continuous_fault_count = 0;
+  int curr_fault_count = 0;
 };
 }  // namespace ur_robot_driver
 

@@ -522,6 +522,22 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     ur_driver_->startRTDECommunication();
     rtde_comm_has_been_started_ = true;
   }
+
+  loop_count++;
+  if(curr_fault_count > max_continuous_fault_count) {
+    max_continuous_fault_count = curr_fault_count;
+  }
+  if(loop_count % 500 == 0) {
+    if(max_continuous_fault_count > 4)
+    {
+      RCLCPP_WARN(rclcpp::get_logger("URPositionHardwareInterface"), "Total read faults: %d", read_fault);
+      RCLCPP_WARN(rclcpp::get_logger("URPositionHardwareInterface"), "Max continuous faults: %d", max_continuous_fault_count);
+    }
+    loop_count = 0;
+    max_continuous_fault_count = 0;
+    read_fault = 0;
+  }
+
   std::unique_ptr<rtde::DataPackage> data_pkg = ur_driver_->getDataPackage();
 
   if (data_pkg) {
@@ -600,8 +616,12 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
 
     updateNonDoubleValues();
 
+    curr_fault_count = 0;
+
     return hardware_interface::return_type::OK;
   }
+  read_fault++;
+  curr_fault_count++;
   if (!non_blocking_read_)
     RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Unable to read from hardware...");
   // TODO(anyone): could not read from the driver --> return ERROR --> on error will be called
