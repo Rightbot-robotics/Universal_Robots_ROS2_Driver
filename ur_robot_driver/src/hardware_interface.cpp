@@ -230,6 +230,11 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
 
   state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "gpio", "program_running", &robot_program_running_copy_));
+  
+  for(size_t i = 0; i < info_.joints.size(); ++i){    
+    state_interfaces.emplace_back(hardware_interface::StateInterface(
+        tf_prefix + "force_torque", "ft_raw_wrench_" + std::to_string(i), &ft_raw_wrench_[i]));
+  }
 
   return state_interfaces;
 }
@@ -536,6 +541,22 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     loop_count = 0;
     max_continuous_fault_count = 0;
     read_fault = 0;
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Read payload value: %f", read_payload_mass_);
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Payload COG values: (%f, %f, %f)",
+      read_payload_center_of_gravity_.at(0), read_payload_center_of_gravity_.at(1), read_payload_center_of_gravity_.at(2)
+    );
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Actual TCP pose: (%f, %f, %f, %f, %f, %f)",
+      urcl_tcp_pose_.at(0), urcl_tcp_pose_.at(1), urcl_tcp_pose_.at(2),
+      urcl_tcp_pose_.at(3), urcl_tcp_pose_.at(4), urcl_tcp_pose_.at(5)
+    );
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Actual TCP force: (%f, %f, %f, %f, %f, %f)",
+      urcl_ft_sensor_measurements_.at(0), urcl_ft_sensor_measurements_.at(1), urcl_ft_sensor_measurements_.at(2),
+      urcl_ft_sensor_measurements_.at(3), urcl_ft_sensor_measurements_.at(4), urcl_ft_sensor_measurements_.at(5)
+    );
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "FT raw wrench: (%f, %f, %f, %f, %f, %f)",
+      ft_raw_wrench_.at(0), ft_raw_wrench_.at(1), ft_raw_wrench_.at(2),
+      ft_raw_wrench_.at(3), ft_raw_wrench_.at(4), ft_raw_wrench_.at(5)
+    );
   }
 
   std::unique_ptr<rtde::DataPackage> data_pkg = ur_driver_->getDataPackage();
@@ -569,6 +590,10 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readBitsetData<uint64_t>(data_pkg, "actual_digital_output_bits", actual_dig_out_bits_);
     readBitsetData<uint32_t>(data_pkg, "analog_io_types", analog_io_types_);
     readBitsetData<uint32_t>(data_pkg, "tool_analog_input_types", tool_analog_input_types_);
+
+    readData(data_pkg, "payload", read_payload_mass_);
+    readData(data_pkg, "payload_cog", read_payload_center_of_gravity_);
+    readData(data_pkg, "ft_raw_wrench", ft_raw_wrench_);
 
     // required transforms
     extractToolPose();

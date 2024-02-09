@@ -167,6 +167,10 @@ protected:
   std::bitset<4> robot_status_bits_;
   std::bitset<11> safety_status_bits_;
 
+  double read_payload_mass_;
+  std::array<double, 3> read_payload_center_of_gravity_;
+  std::array<double, 6> ft_raw_wrench_;
+
   // transform stuff
   tf2::Vector3 tcp_force_;
   tf2::Vector3 tcp_torque_;

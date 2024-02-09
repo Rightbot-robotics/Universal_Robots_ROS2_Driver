@@ -299,6 +299,13 @@ def launch_setup(context, *args, **kwargs):
         parameters=[robot_description],
     )
 
+    fault_recovery_node = Node(
+        package="fault_recovery",
+        executable="fault_recovery_node",
+        name="fault_recovery",
+        output="both"
+    )
+
     rviz_node = Node(
         package="rviz2",
         condition=IfCondition(launch_rviz),
@@ -371,6 +378,7 @@ def launch_setup(context, *args, **kwargs):
         controller_stopper_node,
         urscript_interface,
         robot_state_publisher_node,
+        fault_recovery_node,
         rviz_node,
         initial_joint_controller_spawner_stopped,
         initial_joint_controller_spawner_started,
