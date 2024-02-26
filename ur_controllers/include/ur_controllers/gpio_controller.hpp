@@ -57,6 +57,7 @@
 #include "rclcpp/duration.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "gpio_controller_parameters.hpp"
+#include "rightbot_interfaces/srv/gripper.hpp"
 
 namespace ur_controllers
 {
@@ -122,6 +123,8 @@ public:
 private:
   bool setIO(ur_msgs::srv::SetIO::Request::SharedPtr req, ur_msgs::srv::SetIO::Response::SharedPtr resp);
 
+  bool setGripper(rightbot_interfaces::srv::Gripper::Request::SharedPtr req, rightbot_interfaces::srv::Gripper::Response::SharedPtr resp);
+
   bool setSpeedSlider(ur_msgs::srv::SetSpeedSliderFraction::Request::SharedPtr req,
                       ur_msgs::srv::SetSpeedSliderFraction::Response::SharedPtr resp);
 
@@ -161,6 +164,7 @@ protected:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr hand_back_control_srv_;
   rclcpp::Service<ur_msgs::srv::SetSpeedSliderFraction>::SharedPtr set_speed_slider_srv_;
   rclcpp::Service<ur_msgs::srv::SetIO>::SharedPtr set_io_srv_;
+  rclcpp::Service<rightbot_interfaces::srv::Gripper>::SharedPtr set_gripper_srv_;
   rclcpp::Service<ur_msgs::srv::SetPayload>::SharedPtr set_payload_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr tare_sensor_srv_;
 

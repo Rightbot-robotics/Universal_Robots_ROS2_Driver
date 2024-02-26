@@ -298,6 +298,9 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     set_io_srv_ = get_node()->create_service<ur_msgs::srv::SetIO>(
         "~/set_io", std::bind(&GPIOController::setIO, this, std::placeholders::_1, std::placeholders::_2));
 
+    set_gripper_srv_ = get_node()->create_service<rightbot_interfaces::srv::Gripper>(
+      "~/gripper_pump_control", std::bind(&GPIOController::setGripper, this, std::placeholders::_1, std::placeholders::_2));
+
     set_speed_slider_srv_ = get_node()->create_service<ur_msgs::srv::SetSpeedSliderFraction>(
         "~/set_speed_slider",
         std::bind(&GPIOController::setSpeedSlider, this, std::placeholders::_1, std::placeholders::_2));
@@ -333,6 +336,7 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     safety_mode_pub_.reset();
     program_state_pub_.reset();
     set_io_srv_.reset();
+    set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
@@ -385,6 +389,38 @@ bool GPIOController::setIO(ur_msgs::srv::SetIO::Request::SharedPtr req, ur_msgs:
     return resp->success;
   } else {
     resp->success = false;
+    return false;
+  }
+}
+
+bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::SharedPtr req, rightbot_interfaces::srv::Gripper::Response::SharedPtr resp)
+{ int left_gripper_pin = 16;
+  int right_gripper_pin = 17;
+  if (typeid(req->left_gripper) == typeid(bool) && typeid(req->right_gripper) == typeid(bool)) {
+    // io async success
+    command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+    command_interfaces_[left_gripper_pin].set_value(static_cast<double>(req->left_gripper));
+
+    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output '%d' to state: '%1.0f'.", left_gripper_pin, req->left_gripper);
+
+    if (!waitForAsyncCommand([&]() { return command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].get_value(); })) {
+      RCLCPP_WARN(get_node()->get_logger(), "Could not verify that io was set. (This might happen when using the "
+                                            "mocked interface)");
+    }
+
+    command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+    command_interfaces_[right_gripper_pin].set_value(static_cast<double>(req->right_gripper));
+
+    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output '%d' to state: '%1.0f'.", right_gripper_pin, req->right_gripper);
+
+    if (!waitForAsyncCommand([&]() { return command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].get_value(); })) {
+      RCLCPP_WARN(get_node()->get_logger(), "Could not verify that io was set. (This might happen when using the "
+                                            "mocked interface)");
+    }
+    resp->status = static_cast<bool>(command_interfaces_[IO_ASYNC_SUCCESS].get_value());
+    return resp->status;
+  } else {
+    resp->status = false;
     return false;
   }
 }
