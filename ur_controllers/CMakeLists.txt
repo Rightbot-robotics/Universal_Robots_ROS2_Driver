@@ -20,6 +20,7 @@ find_package(ur_dashboard_msgs REQUIRED)
 find_package(ur_msgs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(rightbot_interfaces REQUIRED)
+find_package(ur_client_library REQUIRED)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   angles
@@ -36,6 +37,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   ur_msgs
   generate_parameter_library
   rightbot_interfaces
+  ur_client_library
 )
 
 include_directories(include)

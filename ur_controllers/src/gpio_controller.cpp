@@ -173,6 +173,7 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishRobotMode();
   publishSafetyMode();
   publishProgramRunning();
+  update_set_gravity_values();
   return controller_interface::return_type::OK;
 }
 
@@ -402,9 +403,20 @@ bool GPIOController::setIO(ur_msgs::srv::SetIO::Request::SharedPtr req, ur_msgs:
 
 void GPIOController::set_gravityCallback(const geometry_msgs::msg::Vector3::SharedPtr msg)
 {
-  command_interfaces_[GRAVITY_X].set_value(msg->x);
-  command_interfaces_[GRAVITY_Y].set_value(msg->y);
-  command_interfaces_[GRAVITY_Z].set_value(msg->z);
+  set_gravity_mutex.lock();
+  urcl_gravity_vector_[0] = msg->x;
+  urcl_gravity_vector_[1] = msg->y;
+  urcl_gravity_vector_[2] = msg->z;
+  set_gravity_mutex.unlock();
+}
+
+void GPIOController::update_set_gravity_values()
+{ 
+  set_gravity_mutex.lock();
+  command_interfaces_[GRAVITY_X].set_value(urcl_gravity_vector_[0]);
+  command_interfaces_[GRAVITY_Y].set_value(urcl_gravity_vector_[1]);
+  command_interfaces_[GRAVITY_Z].set_value(urcl_gravity_vector_[2]);
+  set_gravity_mutex.lock();
 }
 
 bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::SharedPtr req, rightbot_interfaces::srv::Gripper::Response::SharedPtr resp)

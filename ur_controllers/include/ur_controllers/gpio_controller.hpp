@@ -46,6 +46,7 @@
 #include "std_srvs/srv/trigger.hpp"
 
 #include "controller_interface/controller_interface.hpp"
+#include "ur_client_library/ur/ur_driver.h"
 #include "ur_msgs/msg/io_states.hpp"
 #include "ur_msgs/msg/tool_data_msg.hpp"
 #include "ur_dashboard_msgs/msg/robot_mode.hpp"
@@ -156,6 +157,12 @@ private:
   void publishProgramRunning();
 
   void set_gravityCallback(const geometry_msgs::msg::Vector3::SharedPtr msg);
+
+  void update_set_gravity_values();
+
+  std::mutex set_gravity_mutex;
+
+  urcl::vector3d_t urcl_gravity_vector_;
 
 protected:
   void initMsgs();
