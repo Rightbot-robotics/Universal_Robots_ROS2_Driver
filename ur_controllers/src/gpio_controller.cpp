@@ -97,6 +97,10 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "hand_back_control/hand_back_control_cmd");
   config.names.emplace_back(tf_prefix + "hand_back_control/hand_back_control_async_success");
 
+  config.names.emplace_back(tf_prefix + "gravity/x");
+  config.names.emplace_back(tf_prefix + "gravity/y");
+  config.names.emplace_back(tf_prefix + "gravity/z");
+
   return config;
 }
 
@@ -319,6 +323,9 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     tare_sensor_srv_ = get_node()->create_service<std_srvs::srv::Trigger>(
         "~/zero_ftsensor",
         std::bind(&GPIOController::zeroFTSensor, this, std::placeholders::_1, std::placeholders::_2));
+
+    gravity_sub_ = get_node()->create_subscription<geometry_msgs::msg::Vector3>("topic", 10, std::bind(&GPIOController::set_gravityCallback, this, std::placeholders::_1)); 
+
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
@@ -391,6 +398,13 @@ bool GPIOController::setIO(ur_msgs::srv::SetIO::Request::SharedPtr req, ur_msgs:
     resp->success = false;
     return false;
   }
+}
+
+void GPIOController::set_gravityCallback(const geometry_msgs::msg::Vector3::SharedPtr msg)
+{
+  command_interfaces_[GRAVITY_X].set_value(msg->x);
+  command_interfaces_[GRAVITY_Y].set_value(msg->y);
+  command_interfaces_[GRAVITY_Z].set_value(msg->z);
 }
 
 bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::SharedPtr req, rightbot_interfaces::srv::Gripper::Response::SharedPtr resp)

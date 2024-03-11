@@ -58,6 +58,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include "gpio_controller_parameters.hpp"
 #include "rightbot_interfaces/srv/gripper.hpp"
+#include "geometry_msgs/msg/vector3.hpp"
 
 namespace ur_controllers
 {
@@ -80,6 +81,9 @@ enum CommandInterfaces
   ZERO_FTSENSOR_ASYNC_SUCCESS = 32,
   HAND_BACK_CONTROL_CMD = 33,
   HAND_BACK_CONTROL_ASYNC_SUCCESS = 34,
+  GRAVITY_X = 35,
+  GRAVITY_Y = 36,
+  GRAVITY_Z = 37,
   LEFT_GRIPPER_PIN = 16,
   RIGHT_GRIPPER_PIN = 17,
 };
@@ -151,6 +155,8 @@ private:
 
   void publishProgramRunning();
 
+  void set_gravityCallback(const geometry_msgs::msg::Vector3::SharedPtr msg);
+
 protected:
   void initMsgs();
 
@@ -185,6 +191,8 @@ protected:
   // Parameters from ROS for gpio_controller
   std::shared_ptr<gpio_controller::ParamListener> param_listener_;
   gpio_controller::Params params_;
+
+  std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::Vector3>> gravity_sub_;
 
   static constexpr double ASYNC_WAITING = 2.0;
   // TODO(anyone) publishers to add: tcp_pose_pub_

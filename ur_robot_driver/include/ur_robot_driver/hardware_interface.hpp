@@ -143,6 +143,8 @@ protected:
   urcl::vector6d_t urcl_ft_sensor_measurements_;
   urcl::vector6d_t urcl_tcp_pose_;
 
+  urcl::vector3d_t urcl_gravity_vector_;
+
   bool packet_read_;
 
   uint32_t runtime_state_;
