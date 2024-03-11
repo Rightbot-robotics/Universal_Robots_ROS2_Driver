@@ -324,7 +324,7 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
         "~/zero_ftsensor",
         std::bind(&GPIOController::zeroFTSensor, this, std::placeholders::_1, std::placeholders::_2));
 
-    gravity_sub_ = get_node()->create_subscription<geometry_msgs::msg::Vector3>("topic", 10, std::bind(&GPIOController::set_gravityCallback, this, std::placeholders::_1)); 
+    gravity_sub_ = get_node()->create_subscription<geometry_msgs::msg::Vector3>("~/set_gravity", 10, std::bind(&GPIOController::set_gravityCallback, this, std::placeholders::_1)); 
 
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
