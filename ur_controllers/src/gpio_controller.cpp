@@ -420,12 +420,14 @@ void GPIOController::update_set_gravity_values()
 }
 
 bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::SharedPtr req, rightbot_interfaces::srv::Gripper::Response::SharedPtr resp)
-{ 
+{ int left_gripper_pin = 16;
+  int right_gripper_pin = 17;
+  if (typeid(req->left_gripper) == typeid(bool) && typeid(req->right_gripper) == typeid(bool)) {
     // io async success
     command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-    command_interfaces_[CommandInterfaces::LEFT_GRIPPER_PIN].set_value(static_cast<double>(req->left_gripper));
+    command_interfaces_[left_gripper_pin].set_value(static_cast<double>(req->left_gripper));
 
-    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output {} to state: {}.", CommandInterfaces::LEFT_GRIPPER_PIN, req->left_gripper);
+    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output '%d' to state: '%1.0f'.", left_gripper_pin, req->left_gripper);
 
     if (!waitForAsyncCommand([&]() { return command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].get_value(); })) {
       RCLCPP_WARN(get_node()->get_logger(), "Could not verify that io was set. (This might happen when using the "
@@ -433,16 +435,20 @@ bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::Shar
     }
 
     command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-    command_interfaces_[CommandInterfaces::RIGHT_GRIPPER_PIN].set_value(static_cast<double>(req->right_gripper));
+    command_interfaces_[right_gripper_pin].set_value(static_cast<double>(req->right_gripper));
 
-    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output {} to state: {}.", CommandInterfaces::RIGHT_GRIPPER_PIN, req->right_gripper);
+    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output '%d' to state: '%1.0f'.", right_gripper_pin, req->right_gripper);
 
     if (!waitForAsyncCommand([&]() { return command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].get_value(); })) {
       RCLCPP_WARN(get_node()->get_logger(), "Could not verify that io was set. (This might happen when using the "
                                             "mocked interface)");
     }
-    resp->status = resp->status & static_cast<bool>(command_interfaces_[IO_ASYNC_SUCCESS].get_value());
+    resp->status = static_cast<bool>(command_interfaces_[IO_ASYNC_SUCCESS].get_value());
     return resp->status;
+  } else {
+    resp->status = false;
+    return false;
+  }
 }
 
 bool GPIOController::setSpeedSlider(ur_msgs::srv::SetSpeedSliderFraction::Request::SharedPtr req,
