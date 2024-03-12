@@ -20,7 +20,6 @@ find_package(ur_dashboard_msgs REQUIRED)
 find_package(ur_msgs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(rightbot_interfaces REQUIRED)
-find_package(ur_client_library REQUIRED)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   angles
@@ -37,7 +36,6 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   ur_msgs
   generate_parameter_library
   rightbot_interfaces
-  ur_client_library
 )
 
 include_directories(include)
@@ -48,19 +46,19 @@ generate_parameter_library(
   src/gpio_controller_parameters.yaml
 )
 
-# generate_parameter_library(
-#   speed_scaling_state_broadcaster_parameters
-#   src/speed_scaling_state_broadcaster_parameters.yaml
-# )
+generate_parameter_library(
+  speed_scaling_state_broadcaster_parameters
+  src/speed_scaling_state_broadcaster_parameters.yaml
+)
 
-# generate_parameter_library(
-#   scaled_joint_trajectory_controller_parameters
-#   src/scaled_joint_trajectory_controller_parameters.yaml
-# )
+generate_parameter_library(
+  scaled_joint_trajectory_controller_parameters
+  src/scaled_joint_trajectory_controller_parameters.yaml
+)
 
 add_library(${PROJECT_NAME} SHARED
-  # src/scaled_joint_trajectory_controller.cpp
-  # src/speed_scaling_state_broadcaster.cpp
+  src/scaled_joint_trajectory_controller.cpp
+  src/speed_scaling_state_broadcaster.cpp
   src/gpio_controller.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -68,8 +66,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 target_link_libraries(${PROJECT_NAME}
   gpio_controller_parameters
-  # speed_scaling_state_broadcaster_parameters
-  # scaled_joint_trajectory_controller_parameters
+  speed_scaling_state_broadcaster_parameters
+  scaled_joint_trajectory_controller_parameters
 )
 ament_target_dependencies(${PROJECT_NAME}
   ${THIS_PACKAGE_INCLUDE_DEPENDS}

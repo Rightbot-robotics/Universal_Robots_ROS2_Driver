@@ -80,7 +80,6 @@ URPositionHardwareInterface::on_init(const hardware_interface::HardwareInfo& sys
   urcl_position_commands_ = { { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
   urcl_position_commands_old_ = { { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
   urcl_velocity_commands_ = { { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 } };
-  urcl_gravity_vector_ = { {0.0, 0.0, 0.0} };
   stop_modes_ = { StoppingInterface::NONE, StoppingInterface::NONE, StoppingInterface::NONE,
                   StoppingInterface::NONE, StoppingInterface::NONE, StoppingInterface::NONE };
   start_modes_ = {};
@@ -270,13 +269,6 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
   command_interfaces.emplace_back(hardware_interface::CommandInterface(
       tf_prefix + "hand_back_control", "hand_back_control_async_success", &hand_back_control_async_success_));
 
-  command_interfaces.emplace_back(
-      hardware_interface::CommandInterface(tf_prefix + "gravity", "x", &urcl_gravity_vector_[0]));
-  command_interfaces.emplace_back(
-      hardware_interface::CommandInterface(tf_prefix + "gravity", "y", &urcl_gravity_vector_[1]));
-  command_interfaces.emplace_back(
-      hardware_interface::CommandInterface(tf_prefix + "gravity", "z", &urcl_gravity_vector_[2]));
-      
   command_interfaces.emplace_back(hardware_interface::CommandInterface(tf_prefix + "payload", "mass", &payload_mass_));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "payload", "cog.x", &payload_center_of_gravity_[0]));
@@ -626,13 +618,13 @@ hardware_interface::return_type URPositionHardwareInterface::write(const rclcpp:
        runtime_state_ == static_cast<uint32_t>(rtde::RUNTIME_STATE::PAUSING)) &&
       robot_program_running_ && (!non_blocking_read_ || packet_read_)) {
     if (position_controller_running_) {
-      ur_driver_->writeJointCommand(urcl_position_commands_, urcl_gravity_vector_, urcl::comm::ControlMode::MODE_SERVOJ);
+      ur_driver_->writeJointCommand(urcl_position_commands_, urcl::comm::ControlMode::MODE_SERVOJ);
 
     } else if (velocity_controller_running_) {
-      ur_driver_->writeJointCommand(urcl_velocity_commands_, urcl_gravity_vector_, urcl::comm::ControlMode::MODE_SPEEDJ);
+      ur_driver_->writeJointCommand(urcl_velocity_commands_, urcl::comm::ControlMode::MODE_SPEEDJ);
 
     } else {
-      ur_driver_->writeKeepalive(urcl::RobotReceiveTimeout::millisec(100), urcl_gravity_vector_);
+      ur_driver_->writeKeepalive();
     }
 
     packet_read_ = false;

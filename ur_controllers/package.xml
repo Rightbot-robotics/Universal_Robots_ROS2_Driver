@@ -33,7 +33,6 @@
   <depend>ur_dashboard_msgs</depend>
   <depend>ur_msgs</depend>
   <depend>rightbot_interfaces</depend>
-  <depend>ur_client_library</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -97,10 +97,6 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "hand_back_control/hand_back_control_cmd");
   config.names.emplace_back(tf_prefix + "hand_back_control/hand_back_control_async_success");
 
-  config.names.emplace_back(tf_prefix + "gravity/x");
-  config.names.emplace_back(tf_prefix + "gravity/y");
-  config.names.emplace_back(tf_prefix + "gravity/z");
-
   return config;
 }
 
@@ -173,7 +169,6 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishRobotMode();
   publishSafetyMode();
   publishProgramRunning();
-  update_set_gravity_values();
   return controller_interface::return_type::OK;
 }
 
@@ -324,9 +319,6 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     tare_sensor_srv_ = get_node()->create_service<std_srvs::srv::Trigger>(
         "~/zero_ftsensor",
         std::bind(&GPIOController::zeroFTSensor, this, std::placeholders::_1, std::placeholders::_2));
-
-    gravity_sub_ = get_node()->create_subscription<geometry_msgs::msg::Vector3>("~/set_gravity", 10, std::bind(&GPIOController::set_gravityCallback, this, std::placeholders::_1)); 
-
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
@@ -401,33 +393,13 @@ bool GPIOController::setIO(ur_msgs::srv::SetIO::Request::SharedPtr req, ur_msgs:
   }
 }
 
-void GPIOController::set_gravityCallback(const geometry_msgs::msg::Vector3::SharedPtr msg)
-{
-  set_gravity_mutex.lock();
-  urcl_gravity_vector_[0] = msg->x;
-  urcl_gravity_vector_[1] = msg->y;
-  urcl_gravity_vector_[2] = msg->z;
-  set_gravity_mutex.unlock();
-}
-
-void GPIOController::update_set_gravity_values()
-{ 
-  set_gravity_mutex.lock();
-  command_interfaces_[GRAVITY_X].set_value(urcl_gravity_vector_[0]);
-  command_interfaces_[GRAVITY_Y].set_value(urcl_gravity_vector_[1]);
-  command_interfaces_[GRAVITY_Z].set_value(urcl_gravity_vector_[2]);
-  set_gravity_mutex.lock();
-}
-
 bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::SharedPtr req, rightbot_interfaces::srv::Gripper::Response::SharedPtr resp)
-{ int left_gripper_pin = 16;
-  int right_gripper_pin = 17;
-  if (typeid(req->left_gripper) == typeid(bool) && typeid(req->right_gripper) == typeid(bool)) {
+{ 
     // io async success
     command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-    command_interfaces_[left_gripper_pin].set_value(static_cast<double>(req->left_gripper));
+    command_interfaces_[CommandInterfaces::LEFT_GRIPPER_PIN].set_value(static_cast<double>(req->left_gripper));
 
-    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output '%d' to state: '%1.0f'.", left_gripper_pin, req->left_gripper);
+    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output {} to state: {}.", CommandInterfaces::LEFT_GRIPPER_PIN, req->left_gripper);
 
     if (!waitForAsyncCommand([&]() { return command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].get_value(); })) {
       RCLCPP_WARN(get_node()->get_logger(), "Could not verify that io was set. (This might happen when using the "
@@ -435,20 +407,16 @@ bool GPIOController::setGripper(rightbot_interfaces::srv::Gripper::Request::Shar
     }
 
     command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-    command_interfaces_[right_gripper_pin].set_value(static_cast<double>(req->right_gripper));
+    command_interfaces_[CommandInterfaces::RIGHT_GRIPPER_PIN].set_value(static_cast<double>(req->right_gripper));
 
-    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output '%d' to state: '%1.0f'.", right_gripper_pin, req->right_gripper);
+    RCLCPP_INFO(get_node()->get_logger(), "Setting digital output {} to state: {}.", CommandInterfaces::RIGHT_GRIPPER_PIN, req->right_gripper);
 
     if (!waitForAsyncCommand([&]() { return command_interfaces_[CommandInterfaces::IO_ASYNC_SUCCESS].get_value(); })) {
       RCLCPP_WARN(get_node()->get_logger(), "Could not verify that io was set. (This might happen when using the "
                                             "mocked interface)");
     }
-    resp->status = static_cast<bool>(command_interfaces_[IO_ASYNC_SUCCESS].get_value());
+    resp->status = resp->status & static_cast<bool>(command_interfaces_[IO_ASYNC_SUCCESS].get_value());
     return resp->status;
-  } else {
-    resp->status = false;
-    return false;
-  }
 }
 
 bool GPIOController::setSpeedSlider(ur_msgs::srv::SetSpeedSliderFraction::Request::SharedPtr req,
