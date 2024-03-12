@@ -58,6 +58,7 @@
 #include "std_msgs/msg/bool.hpp"
 #include "gpio_controller_parameters.hpp"
 #include "rightbot_interfaces/srv/gripper.hpp"
+#include "rightbot_interfaces/srv/ur_set_gravity.hpp"
 
 namespace ur_controllers
 {
@@ -80,6 +81,10 @@ enum CommandInterfaces
   ZERO_FTSENSOR_ASYNC_SUCCESS = 32,
   HAND_BACK_CONTROL_CMD = 33,
   HAND_BACK_CONTROL_ASYNC_SUCCESS = 34,
+  GRAVITY_X = 35,
+  GRAVITY_Y = 36,
+  GRAVITY_Z = 37,
+  GRAVITY_ASYNC_SUCCESS = 38,
   LEFT_GRIPPER_PIN = 16,
   RIGHT_GRIPPER_PIN = 17,
 };
@@ -141,6 +146,8 @@ private:
 
   bool zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr resp);
 
+  bool setGravity(rightbot_interfaces::srv::UrSetGravity::Request::SharedPtr req, rightbot_interfaces::srv::UrSetGravity::Response::SharedPtr resp);
+  
   void publishIO();
 
   void publishToolData();
@@ -169,6 +176,7 @@ protected:
   rclcpp::Service<rightbot_interfaces::srv::Gripper>::SharedPtr set_gripper_srv_;
   rclcpp::Service<ur_msgs::srv::SetPayload>::SharedPtr set_payload_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr tare_sensor_srv_;
+  rclcpp::Service<rightbot_interfaces::srv::UrSetGravity>::SharedPtr set_gravity_srv_;
 
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::IOStates>> io_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::ToolDataMsg>> tool_data_pub_;
