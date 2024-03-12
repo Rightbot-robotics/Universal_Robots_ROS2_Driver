@@ -327,7 +327,7 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
         std::bind(&GPIOController::zeroFTSensor, this, std::placeholders::_1, std::placeholders::_2));
 
     set_gravity_srv_ =  get_node()->create_service<rightbot_interfaces::srv::UrSetGravity>(
-        "~/set_gravtiy",
+        "~/set_gravity",
         std::bind(&GPIOController::setGravity, this, std::placeholders::_1, std::placeholders::_2));
 
   } catch (...) {
