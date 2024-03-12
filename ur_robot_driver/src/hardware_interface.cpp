@@ -297,6 +297,15 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
 
   command_interfaces.emplace_back(hardware_interface::CommandInterface(
       tf_prefix + "zero_ftsensor", "zero_ftsensor_async_success", &zero_ftsensor_async_success_));
+  
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "gravity", "x", &gravity_[0]));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "gravity", "y", &gravity_[1]));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "gravity", "z", &gravity_[2]));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "gravity", "gravity_async_success", &gravity_async_success_));
 
   return command_interfaces;
 }
@@ -652,6 +661,8 @@ void URPositionHardwareInterface::initAsyncIO()
 
   payload_mass_ = NO_NEW_CMD_;
   payload_center_of_gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
+
+  gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -719,6 +730,14 @@ void URPositionHardwareInterface::checkAsyncIO()
     zero_ftsensor_async_success_ = ur_driver_->zeroFTSensor();
     zero_ftsensor_cmd_ = NO_NEW_CMD_;
   }
+
+  if (!std::isnan(gravity_[0]) &&
+      !std::isnan(gravity_[1]) && !std::isnan(gravity_[2]) &&
+      ur_driver_ != nullptr) {
+    gravity_async_success_ = ur_driver_->setGravity(gravity_);
+    gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
+  }
+
 }
 
 void URPositionHardwareInterface::updateNonDoubleValues()

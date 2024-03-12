@@ -195,6 +195,10 @@ protected:
   double payload_mass_;
   double payload_async_success_;
 
+  // grvity stuff
+  urcl::vector3d_t gravity_;
+  double gravity_async_success_;
+
   // copy of non double values
   std::array<double, 18> actual_dig_out_bits_copy_;
   std::array<double, 18> actual_dig_in_bits_copy_;
