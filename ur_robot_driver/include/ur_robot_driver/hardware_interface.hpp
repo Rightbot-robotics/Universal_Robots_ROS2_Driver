@@ -133,6 +133,7 @@ protected:
   void updateNonDoubleValues();
   void extractToolPose();
   void transformForceTorque();
+  void toolContactCallback(urcl::control::ToolContactResult result);
 
   urcl::vector6d_t urcl_position_commands_;
   urcl::vector6d_t urcl_position_commands_old_;
@@ -198,6 +199,12 @@ protected:
   // grvity stuff
   urcl::vector3d_t gravity_;
   double gravity_async_success_;
+
+  // tool contact stuff
+  double start_tool_contact_;
+  double end_tool_contact_;
+  double tool_contact_result_;
+  double tool_contact_async_success_;
 
   // copy of non double values
   std::array<double, 18> actual_dig_out_bits_copy_;

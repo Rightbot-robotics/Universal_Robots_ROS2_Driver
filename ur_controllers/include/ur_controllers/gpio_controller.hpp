@@ -59,6 +59,7 @@
 #include "gpio_controller_parameters.hpp"
 #include "rightbot_interfaces/srv/gripper.hpp"
 #include "rightbot_interfaces/srv/ur_set_gravity.hpp"
+#include "rightbot_interfaces/srv/ur_set_tool_contact.hpp"
 
 namespace ur_controllers
 {
@@ -85,6 +86,9 @@ enum CommandInterfaces
   GRAVITY_Y = 36,
   GRAVITY_Z = 37,
   GRAVITY_ASYNC_SUCCESS = 38,
+  START_TOOL_CONTACT = 39,
+  STOP_TOOL_CONTACT = 40,
+  TOOL_CONTACT_ASYNC_SUCCESS = 41,
   LEFT_GRIPPER_PIN = 16,
   RIGHT_GRIPPER_PIN = 17,
 };
@@ -108,6 +112,7 @@ enum StateInterfaces
   SAFETY_STATUS_BITS = 58,
   INITIALIZED_FLAG = 69,
   PROGRAM_RUNNING = 70,
+  TOOL_CONTACT_RESULT = 71,
 };
 
 class GPIOController : public controller_interface::ControllerInterface
@@ -147,6 +152,8 @@ private:
   bool zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr resp);
 
   bool setGravity(rightbot_interfaces::srv::UrSetGravity::Request::SharedPtr req, rightbot_interfaces::srv::UrSetGravity::Response::SharedPtr resp);
+
+  bool setToolContact(rightbot_interfaces::srv::UrSetToolContact::Request::SharedPtr req, rightbot_interfaces::srv::UrSetToolContact::Response::SharedPtr resp);
   
   void publishIO();
 
@@ -157,6 +164,8 @@ private:
   void publishSafetyMode();
 
   void publishProgramRunning();
+
+  void publishToolContactResult();
 
 protected:
   void initMsgs();
@@ -177,18 +186,21 @@ protected:
   rclcpp::Service<ur_msgs::srv::SetPayload>::SharedPtr set_payload_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr tare_sensor_srv_;
   rclcpp::Service<rightbot_interfaces::srv::UrSetGravity>::SharedPtr set_gravity_srv_;
+  rclcpp::Service<rightbot_interfaces::srv::UrSetToolContact>::SharedPtr set_tool_contact_srv_;
 
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::IOStates>> io_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::ToolDataMsg>> tool_data_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::RobotMode>> robot_mode_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::SafetyMode>> safety_mode_pub_;
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> program_state_pub_;
+  std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> tool_contact_result_pub_;
 
   ur_msgs::msg::IOStates io_msg_;
   ur_msgs::msg::ToolDataMsg tool_data_msg_;
   ur_dashboard_msgs::msg::RobotMode robot_mode_msg_;
   ur_dashboard_msgs::msg::SafetyMode safety_mode_msg_;
   std_msgs::msg::Bool program_running_msg_;
+  std_msgs::msg::Bool tool_contact_result_msg_;
 
   // Parameters from ROS for gpio_controller
   std::shared_ptr<gpio_controller::ParamListener> param_listener_;
