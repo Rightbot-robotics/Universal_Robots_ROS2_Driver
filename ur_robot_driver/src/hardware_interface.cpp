@@ -562,6 +562,15 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readBitsetData<uint64_t>(data_pkg, "actual_digital_output_bits", actual_dig_out_bits_);
     readBitsetData<uint32_t>(data_pkg, "analog_io_types", analog_io_types_);
     readBitsetData<uint32_t>(data_pkg, "tool_analog_input_types", tool_analog_input_types_);
+    readData(data_pkg, "output_double_register_2", calc_mass_);
+    readData(data_pkg, "output_double_register_3", calc_cog_);
+
+    logging_count_ += 1;
+    if(logging_count_ >= 50) {
+      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Calculated mass: %f", calc_mass_);
+      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Calculated cog: %f", calc_cog_);
+      logging_count_ = 0;
+    }
 
     // required transforms
     extractToolPose();

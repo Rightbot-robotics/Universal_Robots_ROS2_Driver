@@ -224,6 +224,9 @@ protected:
   bool position_controller_running_;
   bool velocity_controller_running_;
 
+  double calc_mass_, calc_cog_;
+  int logging_count_ = 0;
+
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;
 
