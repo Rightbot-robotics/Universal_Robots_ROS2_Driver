@@ -337,6 +337,9 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     program_state_pub_ =
         get_node()->create_publisher<std_msgs::msg::Bool>("~/robot_program_running", program_state_pub_qos);
 
+    payload_test_pub_ =
+        get_node()->create_publisher<rightbot_interfaces::msg::DynamicPayloadTest>("~/payload_test", rclcpp::SystemDefaultsQoS());
+
     set_io_srv_ = get_node()->create_service<ur_msgs::srv::SetIO>(
         "~/set_io", std::bind(&GPIOController::setIO, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -385,6 +388,7 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     set_io_srv_.reset();
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
+    payload_test_pub_.reset();
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
