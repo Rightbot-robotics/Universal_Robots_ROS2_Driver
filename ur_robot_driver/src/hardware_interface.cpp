@@ -231,6 +231,9 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
 
   state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "gpio", "program_running", &robot_program_running_copy_));
+
+  state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "tool_contact", "result", &tool_contact_result_));
   
   for(size_t i = 0; i < 6; ++i) {
     state_interfaces.emplace_back(
@@ -328,6 +331,13 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
       hardware_interface::CommandInterface(tf_prefix + "gravity", "z", &gravity_[2]));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "gravity", "gravity_async_success", &gravity_async_success_));
+  
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "tool_contact", "start", &start_tool_contact_));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "tool_contact", "stop", &end_tool_contact_));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "tool_contact", "tool_contact_async_success", &tool_contact_async_success_));
 
   return command_interfaces;
 }
@@ -693,6 +703,9 @@ void URPositionHardwareInterface::initAsyncIO()
   payload_center_of_gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
 
   gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
+
+  start_tool_contact_ = NO_NEW_CMD_;
+  end_tool_contact_ = NO_NEW_CMD_;
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -766,6 +779,18 @@ void URPositionHardwareInterface::checkAsyncIO()
       ur_driver_ != nullptr) {
     gravity_async_success_ = ur_driver_->setGravity(gravity_);
     gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
+  }
+
+  if(!std::isnan(start_tool_contact_) && ur_driver_ != nullptr) {
+    tool_contact_result_ = 0.0;
+    tool_contact_async_success_ = ur_driver_->startToolContact();
+    start_tool_contact_ = NO_NEW_CMD_;
+  }
+
+  if(!std::isnan(end_tool_contact_) && ur_driver_ != nullptr) {
+    tool_contact_result_ = 0.0;
+    tool_contact_async_success_ = ur_driver_->endToolContact();
+    end_tool_contact_ = NO_NEW_CMD_;
   }
 
 }
@@ -919,6 +944,11 @@ hardware_interface::return_type URPositionHardwareInterface::perform_command_mod
   stop_modes_.clear();
 
   return ret_val;
+}
+
+void URPositionHardwareInterface::toolContactCallback(urcl::control::ToolContactResult result)
+{
+  tool_contact_result_ = result == urcl::control::ToolContactResult::UNTIL_TOOL_CONTACT_RESULT_SUCCESS ? 1.0 : 0.0;
 }
 }  // namespace ur_robot_driver
 

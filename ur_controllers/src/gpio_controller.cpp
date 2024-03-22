@@ -102,6 +102,11 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "gravity/y");
   config.names.emplace_back(tf_prefix + "gravity/z");
   config.names.emplace_back(tf_prefix + "gravity/gravity_async_success");
+
+  // tool contact stuff
+  config.names.emplace_back(tf_prefix + "tool_contact/start");
+  config.names.emplace_back(tf_prefix + "tool_contact/stop");
+  config.names.emplace_back(tf_prefix + "tool_contact/tool_contact_async_success");
   
   return config;
 }
@@ -163,6 +168,9 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
 
   // program running
   config.names.emplace_back(tf_prefix + "gpio/program_running");
+
+  // tool contact result
+  config.names.emplace_back(tf_prefix + "tool_contact/result");
   
   for(size_t i = 0; i < 6; ++i) {
     config.names.emplace_back(
@@ -196,6 +204,7 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishRobotMode();
   publishSafetyMode();
   publishProgramRunning();
+  publishToolContactResult();
   publishPayloadTest();
   return controller_interface::return_type::OK;
 }
@@ -297,6 +306,13 @@ void GPIOController::publishProgramRunning()
   }
 }
 
+void GPIOController::publishToolContactResult()
+{
+  auto tool_contact_result = static_cast<uint8_t>(state_interfaces_[StateInterfaces::TOOL_CONTACT_RESULT].get_value());
+  tool_contact_result_msg_.data = tool_contact_result == 1.0 ? true : false;
+  tool_contact_result_pub_->publish(tool_contact_result_msg_);
+}
+
 void GPIOController::publishPayloadTest()
 {
   for(size_t i = 0; i < 6; ++i) {
@@ -336,6 +352,8 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     program_state_pub_qos.transient_local();
     program_state_pub_ =
         get_node()->create_publisher<std_msgs::msg::Bool>("~/robot_program_running", program_state_pub_qos);
+    
+    tool_contact_result_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>("~/tool_contact_result", rclcpp::SystemDefaultsQoS());
 
     payload_test_pub_ =
         get_node()->create_publisher<rightbot_interfaces::msg::DynamicPayloadTest>("~/payload_test", rclcpp::SystemDefaultsQoS());
@@ -369,6 +387,10 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
         "~/set_gravity",
         std::bind(&GPIOController::setGravity, this, std::placeholders::_1, std::placeholders::_2));
 
+    set_tool_contact_srv_ =  get_node()->create_service<rightbot_interfaces::srv::UrSetToolContact>(
+        "~/set_tool_contact",
+        std::bind(&GPIOController::setToolContact, this, std::placeholders::_1, std::placeholders::_2));
+
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
@@ -385,9 +407,11 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     robot_mode_pub_.reset();
     safety_mode_pub_.reset();
     program_state_pub_.reset();
+    tool_contact_result_pub_.reset();
     set_io_srv_.reset();
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
+    set_tool_contact_srv_.reset();
     payload_test_pub_.reset();
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
@@ -600,6 +624,43 @@ bool GPIOController::setGravity(const rightbot_interfaces::srv::UrSetGravity::Re
     RCLCPP_INFO(get_node()->get_logger(), "gravity has been set successfully");
   } else {
     RCLCPP_ERROR(get_node()->get_logger(), "Could not set the gravity");
+    return false;
+  }
+
+  return true;
+}
+
+bool GPIOController::setToolContact(const rightbot_interfaces::srv::UrSetToolContact::Request::SharedPtr req,
+                                rightbot_interfaces::srv::UrSetToolContact::Response::SharedPtr resp)
+{
+  using namespace rightbot_interfaces::srv;
+
+  switch (req->command_type) {
+    case UrSetToolContact::Request::START_TOOL_CONTACT: {
+      command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::START_TOOL_CONTACT].set_value(1.0);
+    }
+    case UrSetToolContact::Request::STOP_TOOL_CONTACT: {
+      command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::STOP_TOOL_CONTACT].set_value(1.0);
+    }
+    default: {
+      resp->status = false;
+      return false;
+    }
+  }
+  if (!waitForAsyncCommand(
+          [&]() { return command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].get_value(); })) {
+    RCLCPP_WARN(get_node()->get_logger(), "Could not verify that tool contact was set. (This might happen when using the "
+                                          "mocked interface)");
+  }
+
+  resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].get_value());
+
+  if (resp->status) {
+    RCLCPP_INFO(get_node()->get_logger(), "tool contact has been set successfully");
+  } else {
+    RCLCPP_ERROR(get_node()->get_logger(), "Could not set the tool contact");
     return false;
   }
 
