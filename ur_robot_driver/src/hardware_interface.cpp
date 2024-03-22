@@ -93,6 +93,7 @@ URPositionHardwareInterface::on_init(const hardware_interface::HardwareInfo& sys
   initialized_ = false;
   async_thread_shutdown_ = false;
   system_interface_initialized_ = 0.0;
+  tf_prefix_ = info_.hardware_parameters.at("tf_prefix");
 
   for (const hardware_interface::ComponentInfo& joint : info_.joints) {
     if (joint.command_interfaces.size() != 2) {
@@ -567,8 +568,8 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
 
     logging_count_ += 1;
     if(logging_count_ >= 50) {
-      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Calculated mass: %f", calc_mass_);
-      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Calculated cog: %f", calc_cog_);
+      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "[%s] Calculated mass: %f", tf_prefix_.c_str(), calc_mass_);
+      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "[%s] Calculated cog: %f", tf_prefix_.c_str(), calc_cog_);
       logging_count_ = 0;
     }
 

@@ -226,6 +226,7 @@ protected:
 
   double calc_mass_, calc_cog_;
   int logging_count_ = 0;
+  std::string tf_prefix_;
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;
