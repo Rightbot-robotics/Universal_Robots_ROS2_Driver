@@ -27,3 +27,7 @@ safety_status_bits
 actual_current
 output_double_register_2
 output_double_register_3
+output_double_register_4
+output_double_register_5
+output_double_register_6
+actual_TCP_speed

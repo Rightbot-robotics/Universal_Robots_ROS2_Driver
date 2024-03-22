@@ -163,6 +163,27 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
 
   // program running
   config.names.emplace_back(tf_prefix + "gpio/program_running");
+  
+  for(size_t i = 0; i < 6; ++i) {
+    config.names.emplace_back(
+      tf_prefix + "payload_test/actual_tcp_speed_" + std::to_string(i));
+  }
+  
+  for(size_t i = 0; i < 6; ++i) {
+    config.names.emplace_back(
+      tf_prefix + "payload_test/unprocessed_ft_values_" + std::to_string(i));
+  }
+  
+  for(size_t i = 0; i < 3; ++i) {
+    config.names.emplace_back(
+      tf_prefix + "payload_test/calc_accel_" + std::to_string(i));
+  }
+
+  config.names.emplace_back(
+      tf_prefix + "payload_test/calc_payload");
+
+  config.names.emplace_back(
+      tf_prefix + "payload_test/calc_cog");
 
   return config;
 }
@@ -175,6 +196,7 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishRobotMode();
   publishSafetyMode();
   publishProgramRunning();
+  publishPayloadTest();
   return controller_interface::return_type::OK;
 }
 
@@ -273,6 +295,20 @@ void GPIOController::publishProgramRunning()
     program_running_msg_.data = program_running;
     program_state_pub_->publish(program_running_msg_);
   }
+}
+
+void GPIOController::publishPayloadTest()
+{
+  for(size_t i = 0; i < 6; ++i) {
+    payload_test_msg_.actual_tcp_speed[i] = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_TCP_SPEED + i].get_value());
+    payload_test_msg_.actual_tcp_force[i] = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_RAW_FT + i].get_value());
+  }
+  for(size_t i = 0; i < 3; ++i) {
+    payload_test_msg_.calc_accel[i] = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_CALC_ACCEL + i].get_value());
+  }
+  payload_test_msg_.calc_mass = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_CALC_MASS].get_value());
+  payload_test_msg_.calc_cog = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_CALC_COG].get_value());
+  payload_test_pub_->publish(payload_test_msg_);
 }
 
 controller_interface::CallbackReturn
@@ -598,6 +634,12 @@ void GPIOController::initMsgs()
   io_msg_.digital_out_states.resize(standard_digital_output_cmd_.size());
   io_msg_.analog_in_states.resize(2);
   io_msg_.analog_out_states.resize(2);
+
+  payload_test_msg_.actual_tcp_force = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  payload_test_msg_.actual_tcp_speed = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  payload_test_msg_.calc_accel = {0.0, 0.0, 0.0};
+  payload_test_msg_.calc_mass = 0.0;
+  payload_test_msg_.calc_cog = 0.0;
 }
 
 bool GPIOController::waitForAsyncCommand(std::function<double(void)> get_value)

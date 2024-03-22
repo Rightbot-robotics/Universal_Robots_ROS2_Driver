@@ -231,6 +231,27 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
 
   state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "gpio", "program_running", &robot_program_running_copy_));
+  
+  for(size_t i = 0; i < 6; ++i) {
+    state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "actual_tcp_speed_" + std::to_string(i), &actual_tcp_speed_[i]));
+  }
+  
+  for(size_t i = 0; i < 6; ++i) {
+    state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "unprocessed_ft_values_" + std::to_string(i), &og_ft_values_[i]));
+  }
+  
+  for(size_t i = 0; i < 3; ++i) {
+    state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "calc_accel_" + std::to_string(i), &calc_accel_vector_[i]));
+  }
+
+  state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "calc_payload", &calc_mass_));
+
+  state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "calc_cog", &calc_cog_));
 
   return state_interfaces;
 }
@@ -565,13 +586,12 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readBitsetData<uint32_t>(data_pkg, "tool_analog_input_types", tool_analog_input_types_);
     readData(data_pkg, "output_double_register_2", calc_mass_);
     readData(data_pkg, "output_double_register_3", calc_cog_);
+    readData(data_pkg, "output_double_register_4", calc_accel_vector_[0]);
+    readData(data_pkg, "output_double_register_5", calc_accel_vector_[1]);
+    readData(data_pkg, "output_double_register_6", calc_accel_vector_[2]);
+    readData(data_pkg, "actual_TCP_speed", actual_tcp_speed_);
 
-    logging_count_ += 1;
-    if(logging_count_ >= 50) {
-      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "[%s] Calculated mass: %f", tf_prefix_.c_str(), calc_mass_);
-      RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "[%s] Calculated cog: %f", tf_prefix_.c_str(), calc_cog_);
-      logging_count_ = 0;
-    }
+    og_ft_values_ = urcl_ft_sensor_measurements_;
 
     // required transforms
     extractToolPose();

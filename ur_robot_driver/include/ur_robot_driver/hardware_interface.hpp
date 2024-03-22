@@ -227,6 +227,9 @@ protected:
   double calc_mass_, calc_cog_;
   int logging_count_ = 0;
   std::string tf_prefix_;
+  urcl::vector6d_t og_ft_values_;
+  urcl::vector6d_t actual_tcp_speed_;
+  urcl::vector3d_t calc_accel_vector_;
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;

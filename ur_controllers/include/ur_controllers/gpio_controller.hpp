@@ -59,6 +59,7 @@
 #include "gpio_controller_parameters.hpp"
 #include "rightbot_interfaces/srv/gripper.hpp"
 #include "rightbot_interfaces/srv/ur_set_gravity.hpp"
+#include "rightbot_interfaces/msg/dynamic_payload_test.hpp"
 
 namespace ur_controllers
 {
@@ -108,6 +109,11 @@ enum StateInterfaces
   SAFETY_STATUS_BITS = 58,
   INITIALIZED_FLAG = 69,
   PROGRAM_RUNNING = 70,
+  PAYLOAD_TEST_TCP_SPEED = 71,
+  PAYLOAD_TEST_RAW_FT = 77,
+  PAYLOAD_TEST_CALC_ACCEL = 83,
+  PAYLOAD_TEST_CALC_MASS = 86,
+  PAYLOAD_TEST_CALC_COG = 87,
 };
 
 class GPIOController : public controller_interface::ControllerInterface
@@ -158,6 +164,8 @@ private:
 
   void publishProgramRunning();
 
+  void publishPayloadTest();
+
 protected:
   void initMsgs();
 
@@ -183,12 +191,14 @@ protected:
   std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::RobotMode>> robot_mode_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::SafetyMode>> safety_mode_pub_;
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> program_state_pub_;
+  std::shared_ptr<rclcpp::Publisher<rightbot_interfaces::msg::DynamicPayloadTest>> payload_test_pub_;
 
   ur_msgs::msg::IOStates io_msg_;
   ur_msgs::msg::ToolDataMsg tool_data_msg_;
   ur_dashboard_msgs::msg::RobotMode robot_mode_msg_;
   ur_dashboard_msgs::msg::SafetyMode safety_mode_msg_;
   std_msgs::msg::Bool program_running_msg_;
+  rightbot_interfaces::msg::DynamicPayloadTest payload_test_msg_;
 
   // Parameters from ROS for gpio_controller
   std::shared_ptr<gpio_controller::ParamListener> param_listener_;
