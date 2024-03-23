@@ -474,6 +474,10 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
                         "README.md] for details.");
   }
 
+  ur_driver_->setToolContactResultCallback(
+    std::bind(&URPositionHardwareInterface::toolContactCallback, this, std::placeholders::_1)
+  );
+
   async_thread_ = std::make_shared<std::thread>(&URPositionHardwareInterface::asyncThread, this);
 
   RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "System successfully started!");
