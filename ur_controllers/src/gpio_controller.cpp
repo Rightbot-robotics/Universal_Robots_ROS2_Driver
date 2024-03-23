@@ -193,6 +193,14 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
   config.names.emplace_back(
       tf_prefix + "payload_test/calc_cog");
 
+  config.names.emplace_back(
+      tf_prefix + "payload_test/payload_set");
+  
+  for(size_t i = 0; i < 3; ++i) {
+    config.names.emplace_back(
+      tf_prefix + "payload_test/cog_set_" + std::to_string(i));
+  }
+
   return config;
 }
 
@@ -321,9 +329,11 @@ void GPIOController::publishPayloadTest()
   }
   for(size_t i = 0; i < 3; ++i) {
     payload_test_msg_.calc_accel[i] = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_CALC_ACCEL + i].get_value());
+    payload_test_msg_.cog_set[i] = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_COG_SET + i].get_value());
   }
   payload_test_msg_.calc_mass = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_CALC_MASS].get_value());
   payload_test_msg_.calc_cog = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_CALC_COG].get_value());
+  payload_test_msg_.payload_set = static_cast<double>(state_interfaces_[StateInterfaces::PAYLOAD_TEST_PAYLOAD_SET].get_value());
   payload_test_pub_->publish(payload_test_msg_);
 }
 

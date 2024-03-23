@@ -256,6 +256,14 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
   state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "payload_test", "calc_cog", &calc_cog_));
 
+  state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "payload_set", &receved_payload_));
+  
+  for(size_t i = 0; i < 3; ++i) {
+    state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payload_test", "cog_set_" + std::to_string(i), &receved_cog_[i]));
+  }
+
   return state_interfaces;
 }
 
@@ -604,6 +612,8 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readData(data_pkg, "output_double_register_5", calc_accel_vector_[1]);
     readData(data_pkg, "output_double_register_6", calc_accel_vector_[2]);
     readData(data_pkg, "actual_TCP_speed", actual_tcp_speed_);
+    readData(data_pkg, "payload", receved_payload_);
+    readData(data_pkg, "payload_cog", receved_cog_);
 
     og_ft_values_ = urcl_ft_sensor_measurements_;
 

@@ -31,3 +31,5 @@ output_double_register_4
 output_double_register_5
 output_double_register_6
 actual_TCP_speed
+payload
+payload_cog

@@ -119,6 +119,8 @@ enum StateInterfaces
   PAYLOAD_TEST_CALC_ACCEL = 84,
   PAYLOAD_TEST_CALC_MASS = 87,
   PAYLOAD_TEST_CALC_COG = 88,
+  PAYLOAD_TEST_PAYLOAD_SET = 89,
+  PAYLOAD_TEST_COG_SET = 90,
 };
 
 class GPIOController : public controller_interface::ControllerInterface
