@@ -346,6 +346,11 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
       hardware_interface::CommandInterface(tf_prefix + "tool_contact", "stop", &end_tool_contact_));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "tool_contact", "tool_contact_async_success", &tool_contact_async_success_));
+  
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "activate", &activate_dynamic_payload_));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "dynamic_payload_async_success", &dynamic_payload_async_success_));
 
   return command_interfaces;
 }
@@ -720,6 +725,7 @@ void URPositionHardwareInterface::initAsyncIO()
 
   start_tool_contact_ = NO_NEW_CMD_;
   end_tool_contact_ = NO_NEW_CMD_;
+  activate_dynamic_payload_ = NO_NEW_CMD_;
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -805,6 +811,12 @@ void URPositionHardwareInterface::checkAsyncIO()
     tool_contact_result_ = 0.0;
     tool_contact_async_success_ = ur_driver_->endToolContact();
     end_tool_contact_ = NO_NEW_CMD_;
+  }
+
+  if(!std::isnan(activate_dynamic_payload_) && ur_driver_ != nullptr) {
+    tool_contact_result_ = 0.0;
+    dynamic_payload_async_success_ = ur_driver_->activateDynamicPayload();
+    activate_dynamic_payload_ = NO_NEW_CMD_;
   }
 
 }

@@ -107,6 +107,10 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "tool_contact/start");
   config.names.emplace_back(tf_prefix + "tool_contact/stop");
   config.names.emplace_back(tf_prefix + "tool_contact/tool_contact_async_success");
+
+  // dynamic payload stuff
+  config.names.emplace_back(tf_prefix + "dynamic_payload/activate");
+  config.names.emplace_back(tf_prefix + "dynamic_payload/dynamic_payload_async_success");
   
   return config;
 }
@@ -401,6 +405,10 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
         "~/set_tool_contact",
         std::bind(&GPIOController::setToolContact, this, std::placeholders::_1, std::placeholders::_2));
 
+    set_dynamic_payload_srv_ =  get_node()->create_service<rightbot_interfaces::srv::UrSetDynamicPayload>(
+        "~/set_dynamic_payload",
+        std::bind(&GPIOController::setDynamicPayload, this, std::placeholders::_1, std::placeholders::_2));
+
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
@@ -422,6 +430,7 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
     set_tool_contact_srv_.reset();
+    set_dynamic_payload_srv_.reset();
     payload_test_pub_.reset();
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
@@ -676,6 +685,48 @@ bool GPIOController::setToolContact(const rightbot_interfaces::srv::UrSetToolCon
     RCLCPP_INFO(get_node()->get_logger(), "tool contact has been set successfully");
   } else {
     RCLCPP_ERROR(get_node()->get_logger(), "Could not set the tool contact");
+    return false;
+  }
+
+  return true;
+}
+
+bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDynamicPayload::Request::SharedPtr req,
+                                rightbot_interfaces::srv::UrSetDynamicPayload::Response::SharedPtr resp)
+{
+  using namespace rightbot_interfaces::srv;
+
+  switch (req->command_type) {
+    case UrSetDynamicPayload::Request::ACTIVATE_DYNAMIC_PAYLOAD: {
+      RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
+      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::ACTIVATE_DYNAMIC_PAYLOAD].set_value(1.0);
+      break;
+    }
+    case UrSetDynamicPayload::Request::DEACTIVATE_DYNAMIC_PAYLOAD: {
+      RCLCPP_INFO(get_node()->get_logger(), "Deactivate function not implemented");
+      resp->status = false;
+      return false;
+      break;
+    }
+    default: {
+      RCLCPP_ERROR(get_node()->get_logger(), "Invalid set dynamic payload command");
+      resp->status = false;
+      return false;
+    }
+  }
+  if (!waitForAsyncCommand(
+          [&]() { return command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value(); })) {
+    RCLCPP_WARN(get_node()->get_logger(), "Could not verify that tool contact was set. (This might happen when using the "
+                                          "mocked interface)");
+  }
+
+  resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value());
+
+  if (resp->status) {
+    RCLCPP_INFO(get_node()->get_logger(), "dynamic payload command has been set successfully");
+  } else {
+    RCLCPP_ERROR(get_node()->get_logger(), "Could not set the dynamic payload command");
     return false;
   }
 
