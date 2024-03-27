@@ -196,6 +196,7 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishSafetyMode();
   publishProgramRunning();
   publishToolContactResult();
+  publishPayloadInfo();
   return controller_interface::return_type::OK;
 }
 
