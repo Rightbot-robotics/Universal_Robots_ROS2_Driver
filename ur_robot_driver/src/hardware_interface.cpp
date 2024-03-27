@@ -233,6 +233,21 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
 
   state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "tool_contact", "result", &tool_contact_result_));
+  
+  for(size_t i = 0; i < 6; ++i) {
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(tf_prefix + "payoad_info", "ur_actual_tcp_pose_" + std::to_string(i), &ur_actual_tcp_pose_[i]));
+  }
+  
+  for(size_t i = 0; i < 6; ++i) {
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(tf_prefix + "payoad_info", "ur_actual_tcp_speed_" + std::to_string(i), &ur_actual_tcp_speed_[i]));
+  }
+  
+  for(size_t i = 0; i < 6; ++i) {
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(tf_prefix + "payoad_info", "ur_ft_raw_wrench_" + std::to_string(i), &ur_ft_raw_wrench_[i]));
+  }
 
   return state_interfaces;
 }
@@ -572,6 +587,10 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readBitsetData<uint64_t>(data_pkg, "actual_digital_output_bits", actual_dig_out_bits_);
     readBitsetData<uint32_t>(data_pkg, "analog_io_types", analog_io_types_);
     readBitsetData<uint32_t>(data_pkg, "tool_analog_input_types", tool_analog_input_types_);
+
+    readData(data_pkg, "actual_TCP_speed", ur_actual_tcp_speed_);
+    readData(data_pkg, "ft_raw_wrench", ur_ft_raw_wrench_);
+    ur_actual_tcp_pose_ = urcl_tcp_pose_;
 
     // required transforms
     extractToolPose();

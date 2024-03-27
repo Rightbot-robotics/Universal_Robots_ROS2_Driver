@@ -172,6 +172,18 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
   // tool contact result
   config.names.emplace_back(tf_prefix + "tool_contact/result");
 
+  for(size_t i = 0; i < 6; ++i) {
+    config.names.emplace_back(tf_prefix + "payoad_info/ur_actual_tcp_pose_" + std::to_string(i));
+  }
+
+  for(size_t i = 0; i < 6; ++i) {
+    config.names.emplace_back(tf_prefix + "payoad_info/ur_actual_tcp_speed_" + std::to_string(i));
+  }
+
+  for(size_t i = 0; i < 6; ++i) {
+    config.names.emplace_back(tf_prefix + "payoad_info/ur_ft_raw_wrench_" + std::to_string(i));
+  }
+
   return config;
 }
 
@@ -291,6 +303,16 @@ void GPIOController::publishToolContactResult()
   tool_contact_result_pub_->publish(tool_contact_result_msg_);
 }
 
+void GPIOController::publishPayloadInfo()
+{
+  for(size_t i = 0; i < 6; ++i) {
+    payload_info_msg_.ur_actual_tcp_pose[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_POSE + i].get_value();
+    payload_info_msg_.ur_actual_tcp_speed[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_SPEED + i].get_value();
+    payload_info_msg_.ur_ft_raw_wrench[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_RAW_FT + i].get_value();
+  }
+  payload_info_pub_->publish(payload_info_msg_);
+}
+
 controller_interface::CallbackReturn
 ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
@@ -318,6 +340,8 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
         get_node()->create_publisher<std_msgs::msg::Bool>("~/robot_program_running", program_state_pub_qos);
     
     tool_contact_result_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>("~/tool_contact_result", rclcpp::SystemDefaultsQoS());
+
+    payload_info_pub_ = get_node()->create_publisher<rightbot_interfaces::msg::UrPayloadInfo>("~/payload_info", rclcpp::SystemDefaultsQoS());
 
     set_io_srv_ = get_node()->create_service<ur_msgs::srv::SetIO>(
         "~/set_io", std::bind(&GPIOController::setIO, this, std::placeholders::_1, std::placeholders::_2));
@@ -369,6 +393,7 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     safety_mode_pub_.reset();
     program_state_pub_.reset();
     tool_contact_result_pub_.reset();
+    payload_info_pub_.reset();
     set_io_srv_.reset();
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();

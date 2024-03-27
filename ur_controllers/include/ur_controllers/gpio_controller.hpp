@@ -60,6 +60,7 @@
 #include "rightbot_interfaces/srv/gripper.hpp"
 #include "rightbot_interfaces/srv/ur_set_gravity.hpp"
 #include "rightbot_interfaces/srv/ur_set_tool_contact.hpp"
+#include "rightbot_interfaces/msg/ur_payload_info.hpp"
 
 namespace ur_controllers
 {
@@ -113,6 +114,9 @@ enum StateInterfaces
   INITIALIZED_FLAG = 69,
   PROGRAM_RUNNING = 70,
   TOOL_CONTACT_RESULT = 71,
+  PAYLOAD_INFO_UR_POSE = 72,
+  PAYLOAD_INFO_UR_SPEED = 78,
+  PAYLOAD_INFO_UR_RAW_FT = 84,
 };
 
 class GPIOController : public controller_interface::ControllerInterface
@@ -167,6 +171,8 @@ private:
 
   void publishToolContactResult();
 
+  void publishPayloadInfo();
+
 protected:
   void initMsgs();
 
@@ -194,6 +200,7 @@ protected:
   std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::SafetyMode>> safety_mode_pub_;
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> program_state_pub_;
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> tool_contact_result_pub_;
+  std::shared_ptr<rclcpp::Publisher<rightbot_interfaces::msg::UrPayloadInfo>> payload_info_pub_;
 
   ur_msgs::msg::IOStates io_msg_;
   ur_msgs::msg::ToolDataMsg tool_data_msg_;
@@ -201,6 +208,7 @@ protected:
   ur_dashboard_msgs::msg::SafetyMode safety_mode_msg_;
   std_msgs::msg::Bool program_running_msg_;
   std_msgs::msg::Bool tool_contact_result_msg_;
+  rightbot_interfaces::msg::UrPayloadInfo payload_info_msg_;
 
   // Parameters from ROS for gpio_controller
   std::shared_ptr<gpio_controller::ParamListener> param_listener_;

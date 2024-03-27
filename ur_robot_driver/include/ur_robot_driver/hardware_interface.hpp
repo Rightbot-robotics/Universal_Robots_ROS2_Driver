@@ -231,6 +231,11 @@ protected:
   bool position_controller_running_;
   bool velocity_controller_running_;
 
+  // payload related stuff
+  urcl::vector6d_t ur_actual_tcp_pose_;
+  urcl::vector6d_t ur_actual_tcp_speed_;
+  urcl::vector6d_t ur_ft_raw_wrench_;
+
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;
 
