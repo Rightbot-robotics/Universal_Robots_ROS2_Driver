@@ -628,14 +628,19 @@ bool GPIOController::setToolContact(const rightbot_interfaces::srv::UrSetToolCon
 
   switch (req->command_type) {
     case UrSetToolContact::Request::START_TOOL_CONTACT: {
+      RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
       command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
       command_interfaces_[CommandInterfaces::START_TOOL_CONTACT].set_value(1.0);
+      break;
     }
     case UrSetToolContact::Request::STOP_TOOL_CONTACT: {
+      RCLCPP_INFO(get_node()->get_logger(), "Stopping tool contact");
       command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
       command_interfaces_[CommandInterfaces::STOP_TOOL_CONTACT].set_value(1.0);
+      break;
     }
     default: {
+      RCLCPP_ERROR(get_node()->get_logger(), "Invalid tool contact command");
       resp->status = false;
       return false;
     }
