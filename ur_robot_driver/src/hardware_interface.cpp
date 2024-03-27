@@ -248,6 +248,11 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
     state_interfaces.emplace_back(
         hardware_interface::StateInterface(tf_prefix + "payoad_info", "ur_ft_raw_wrench_" + std::to_string(i), &ur_ft_raw_wrench_[i]));
   }
+  
+  for(size_t i = 0; i < 6; ++i) {
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(tf_prefix + "payoad_info", "ur_ft_compensated_" + std::to_string(i), &ur_ft_compensated_[i]));
+  }
 
   return state_interfaces;
 }
@@ -595,6 +600,7 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     // required transforms
     extractToolPose();
     transformForceTorque();
+    ur_ft_compensated_ = urcl_ft_sensor_measurements_;
 
     // TODO(anyone): logic for sending other stuff to higher level interface
 

@@ -235,6 +235,7 @@ protected:
   urcl::vector6d_t ur_actual_tcp_pose_;
   urcl::vector6d_t ur_actual_tcp_speed_;
   urcl::vector6d_t ur_ft_raw_wrench_;
+  urcl::vector6d_t ur_ft_compensated_;
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;

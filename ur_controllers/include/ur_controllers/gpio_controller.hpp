@@ -117,6 +117,7 @@ enum StateInterfaces
   PAYLOAD_INFO_UR_POSE = 72,
   PAYLOAD_INFO_UR_SPEED = 78,
   PAYLOAD_INFO_UR_RAW_FT = 84,
+  PAYLOAD_INFO_UR_FT_COMP = 90,
 };
 
 class GPIOController : public controller_interface::ControllerInterface
