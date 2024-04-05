@@ -498,6 +498,8 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
     std::bind(&URPositionHardwareInterface::toolContactCallback, this, std::placeholders::_1)
   );
 
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(24, 1.23456);
+
   async_thread_ = std::make_shared<std::thread>(&URPositionHardwareInterface::asyncThread, this);
 
   RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "System successfully started!");
