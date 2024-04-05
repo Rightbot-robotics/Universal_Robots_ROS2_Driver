@@ -464,6 +464,11 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
   const double default_payload_cog_x = std::stod(info_.hardware_parameters["default_payload_cog_x"]);
   const double default_payload_cog_y = std::stod(info_.hardware_parameters["default_payload_cog_y"]);
   const double default_payload_cog_z = std::stod(info_.hardware_parameters["default_payload_cog_z"]);
+
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface" + tf_prefix), "Payload mass: %f", default_payload_mass);
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface" + tf_prefix), "Payload cog x: %f", default_payload_cog_x);
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface" + tf_prefix), "Payload cog y: %f", default_payload_cog_y);
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface" + tf_prefix), "Payload cog z: %f", default_payload_cog_z);
   
   RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Initializing driver...");
   registerUrclLogHandler(tf_prefix);
@@ -473,7 +478,8 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
         robot_ip, script_filename, output_recipe_filename, input_recipe_filename,
         std::bind(&URPositionHardwareInterface::handleRobotProgramState, this, std::placeholders::_1), headless_mode,
         std::move(tool_comm_setup), (uint32_t)reverse_port, (uint32_t)script_sender_port, servoj_gain,
-        servoj_lookahead_time, non_blocking_read_, reverse_ip, trajectory_port, script_command_port);
+        servoj_lookahead_time, non_blocking_read_, reverse_ip, trajectory_port, script_command_port, 0.025, 0.5,
+        default_payload_mass, default_payload_cog_x, default_payload_cog_y, default_payload_cog_z);
     ur_driver_->setKeepaliveCount(keep_alive_count);
   } catch (urcl::ToolCommNotAvailable& e) {
     RCLCPP_FATAL_STREAM(rclcpp::get_logger("URPositionHardwareInterface"), "See parameter use_tool_communication");
