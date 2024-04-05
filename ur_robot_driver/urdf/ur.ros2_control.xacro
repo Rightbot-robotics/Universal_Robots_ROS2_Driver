@@ -26,6 +26,10 @@
     trajectory_port:=50003
     non_blocking_read:=true
     keep_alive_count:=2
+    default_payload_mass:=0.0
+    default_payload_cog_x:=0.0
+    default_payload_cog_y:=0.0
+    default_payload_cog_z:=0.0
     ">
 
     <xacro:property name="config_kinematics_parameters" value="${xacro.load_yaml(kinematics_parameters_file)}"/>
@@ -70,6 +74,10 @@
           <param name="tool_device_name">${tool_device_name}</param>
           <param name="tool_tcp_port">${tool_tcp_port}</param>
           <param name="keep_alive_count">${keep_alive_count}</param>
+          <param name="default_payload_mass">${default_payload_mass}</param>
+          <param name="default_payload_cog_x">${default_payload_cog_x}</param>
+          <param name="default_payload_cog_y">${default_payload_cog_y}</param>
+          <param name="default_payload_cog_z">${default_payload_cog_z}</param>
         </xacro:unless>
       </hardware>
 

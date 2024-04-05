@@ -459,6 +459,12 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
   // Obtain the tf_prefix which is needed for the logging handler so that log messages from different arms are
   // distiguishable in the log
   const std::string tf_prefix = info_.hardware_parameters.at("tf_prefix");
+
+  const double default_payload_mass = std::stod(info_.hardware_parameters["default_payload_mass"]);
+  const double default_payload_cog_x = std::stod(info_.hardware_parameters["default_payload_cog_x"]);
+  const double default_payload_cog_y = std::stod(info_.hardware_parameters["default_payload_cog_y"]);
+  const double default_payload_cog_z = std::stod(info_.hardware_parameters["default_payload_cog_z"]);
+  
   RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Initializing driver...");
   registerUrclLogHandler(tf_prefix);
   try {
@@ -498,7 +504,20 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
     std::bind(&URPositionHardwareInterface::toolContactCallback, this, std::placeholders::_1)
   );
 
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(24, 1.23456);
+  // setting default payload values to registers
+  bool default_payload_write_status = true;
+  default_payload_write_status = default_payload_write_status && ur_driver_->getRTDEWriter().sendInputDoubleRegister(24, default_payload_mass);
+  default_payload_write_status = default_payload_write_status && ur_driver_->getRTDEWriter().sendInputDoubleRegister(25, default_payload_cog_x);
+  default_payload_write_status = default_payload_write_status && ur_driver_->getRTDEWriter().sendInputDoubleRegister(26, default_payload_cog_y);
+  default_payload_write_status = default_payload_write_status && ur_driver_->getRTDEWriter().sendInputDoubleRegister(27, default_payload_cog_z);
+
+  if(!default_payload_write_status) {
+    RCLCPP_ERROR_STREAM(rclcpp::get_logger("URPositionHardwareInterface" + tf_prefix), "Failed to set default payload parameters to registers. Aborting.");
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+  else {
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("URPositionHardwareInterface" + tf_prefix), "Default payload parameters set successfully.");
+  }
 
   async_thread_ = std::make_shared<std::thread>(&URPositionHardwareInterface::asyncThread, this);
 
@@ -765,7 +784,14 @@ void URPositionHardwareInterface::checkAsyncIO()
   if (!std::isnan(payload_mass_) && !std::isnan(payload_center_of_gravity_[0]) &&
       !std::isnan(payload_center_of_gravity_[1]) && !std::isnan(payload_center_of_gravity_[2]) &&
       ur_driver_ != nullptr) {
-    payload_async_success_ = ur_driver_->setPayload(payload_mass_, payload_center_of_gravity_);
+    payload_async_success_ = true;
+    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(24, payload_mass_);
+    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(25, payload_center_of_gravity_[0]);
+    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(26, payload_center_of_gravity_[1]);
+    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(27, payload_center_of_gravity_[2]);
+    if(!payload_async_success_) {
+      RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Could not set payload registers");
+    }
     payload_mass_ = NO_NEW_CMD_;
     payload_center_of_gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
   }
