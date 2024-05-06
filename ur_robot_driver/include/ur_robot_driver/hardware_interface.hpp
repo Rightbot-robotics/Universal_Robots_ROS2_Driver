@@ -206,6 +206,10 @@ protected:
   double tool_contact_result_;
   double tool_contact_async_success_;
 
+  // dynamic payload stuff
+  double start_dynamic_payload_;
+  double end_dynamic_payload_;
+
   // copy of non double values
   std::array<double, 18> actual_dig_out_bits_copy_;
   std::array<double, 18> actual_dig_in_bits_copy_;

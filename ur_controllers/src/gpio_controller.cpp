@@ -663,6 +663,48 @@ bool GPIOController::setToolContact(const rightbot_interfaces::srv::UrSetToolCon
   return true;
 }
 
+bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDynamicPayload::Request::SharedPtr req,
+                                rightbot_interfaces::srv::UrSetDynamicPayload::Response::SharedPtr resp)
+{
+  using namespace rightbot_interfaces::srv;
+
+  switch (req->command_type) {
+    case UrSetDynamicPayload::Request::ACTIVATE_DYNAMIC_PAYLOAD: {
+      RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
+      command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::START_TOOL_CONTACT].set_value(1.0);
+      break;
+    }
+    case UrSetDynamicPayload::Request::DEACTIVATE_DYNAMIC_PAYLOAD: {
+      RCLCPP_INFO(get_node()->get_logger(), "Stopping tool contact");
+      command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::STOP_TOOL_CONTACT].set_value(1.0);
+      break;
+    }
+    default: {
+      RCLCPP_ERROR(get_node()->get_logger(), "Invalid pay load set command");
+      resp->status = false;
+      return false;
+    }
+  }
+  if (!waitForAsyncCommand(
+          [&]() { return command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].get_value(); })) {
+    RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set. (This might happen when using the "
+                                          "mocked interface)");
+  }
+
+  resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].get_value());
+
+  if (resp->status) {
+    RCLCPP_INFO(get_node()->get_logger(), "payload has been set successfully");
+  } else {
+    RCLCPP_ERROR(get_node()->get_logger(), "Could not set the payload");
+    return false;
+  }
+
+  return true;
+}
+
 bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
                                   std_srvs::srv::Trigger::Response::SharedPtr resp)
 {

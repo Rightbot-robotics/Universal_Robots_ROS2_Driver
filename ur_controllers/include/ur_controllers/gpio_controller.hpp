@@ -60,6 +60,7 @@
 #include "rightbot_interfaces/srv/gripper.hpp"
 #include "rightbot_interfaces/srv/ur_set_gravity.hpp"
 #include "rightbot_interfaces/srv/ur_set_tool_contact.hpp"
+#include "rightbot_interfaces/srv/ur_set_dynamic_payload.hpp"
 #include "rightbot_interfaces/msg/ur_payload_info.hpp"
 
 namespace ur_controllers
@@ -159,6 +160,8 @@ private:
   bool setGravity(rightbot_interfaces::srv::UrSetGravity::Request::SharedPtr req, rightbot_interfaces::srv::UrSetGravity::Response::SharedPtr resp);
 
   bool setToolContact(rightbot_interfaces::srv::UrSetToolContact::Request::SharedPtr req, rightbot_interfaces::srv::UrSetToolContact::Response::SharedPtr resp);
+
+  bool setDynamicPayload(rightbot_interfaces::srv::UrSetDynamicPayload::Request::SharedPtr req, rightbot_interfaces::srv::UrSetDynamicPayload::Response::SharedPtr resp);
   
   void publishIO();
 
@@ -194,6 +197,7 @@ protected:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr tare_sensor_srv_;
   rclcpp::Service<rightbot_interfaces::srv::UrSetGravity>::SharedPtr set_gravity_srv_;
   rclcpp::Service<rightbot_interfaces::srv::UrSetToolContact>::SharedPtr set_tool_contact_srv_;
+  rclcpp::Service<rightbot_interfaces::srv::UrSetDynamicPayload>::SharedPtr set_dynamic_payload_srv_;
 
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::IOStates>> io_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::ToolDataMsg>> tool_data_pub_;
