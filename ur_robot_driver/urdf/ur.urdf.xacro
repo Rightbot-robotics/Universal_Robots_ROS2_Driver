@@ -101,6 +101,10 @@
     reverse_port="$(arg reverse_port)"
     script_sender_port="$(arg script_sender_port)"
     trajectory_port="$(arg trajectory_port)"
+    default_payload_mass="5.550"
+    default_payload_cog_x="-0.003"
+    default_payload_cog_y="0.007"
+    default_payload_cog_z="0.042"
   />
 
 </robot>

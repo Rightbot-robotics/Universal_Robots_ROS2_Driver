@@ -335,18 +335,12 @@ def launch_setup(context, *args, **kwargs):
     # Spawn controllers
     def controller_spawner(controllers, active=True):
         inactive_flags = ["--inactive"] if not active else []
-        return Node(
+        return [Node(
             package="controller_manager",
             executable="spawner",
-            arguments=[
-                "--controller-manager",
-                "/controller_manager",
-                "--controller-manager-timeout",
-                controller_spawner_timeout,
-            ]
-            + inactive_flags
-            + controllers,
-        )
+            arguments=[controller, "-c", "/controller_manager", "--controller-manager-timeout=360"]
+            + inactive_flags,
+        ) for controller in controllers]
 
     controllers_active = [
         "joint_state_broadcaster",
@@ -356,9 +350,7 @@ def launch_setup(context, *args, **kwargs):
     ]
     controllers_inactive = ["forward_position_controller"]
 
-    controller_spawners = [controller_spawner(controllers_active)] + [
-        controller_spawner(controllers_inactive, active=False)
-    ]
+    controller_spawners = controller_spawner(controllers_active) + controller_spawner(controllers_inactive, active=False)
 
     # There may be other controllers of the joints, but this is the initially-started one
     initial_joint_controller_spawner_started = Node(

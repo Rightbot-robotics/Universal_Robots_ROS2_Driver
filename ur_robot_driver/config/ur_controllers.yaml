@@ -58,10 +58,14 @@ joint_trajectory_controller:
       - $(var tf_prefix)wrist_2_joint
       - $(var tf_prefix)wrist_3_joint
     command_interfaces:
-      - position
+      - velocity
     state_interfaces:
       - position
       - velocity
+    
+    allow_integration_in_goal_trajectories: true
+    tool_contact_state_interface: $(var tf_prefix)tool_contact/result
+    ur_safety_mode_state_interface: $(var tf_prefix)gpio/safety_mode
     state_publish_rate: 100.0
     action_monitor_rate: 20.0
     allow_partial_joints_goal: false
