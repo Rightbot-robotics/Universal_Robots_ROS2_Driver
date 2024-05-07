@@ -209,6 +209,7 @@ protected:
   // dynamic payload stuff
   double start_dynamic_payload_;
   double end_dynamic_payload_;
+  double dynamic_payload_async_success_;
 
   // copy of non double values
   std::array<double, 18> actual_dig_out_bits_copy_;

@@ -107,6 +107,11 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "tool_contact/start");
   config.names.emplace_back(tf_prefix + "tool_contact/stop");
   config.names.emplace_back(tf_prefix + "tool_contact/tool_contact_async_success");
+
+  // dynamic payload stuff
+  config.names.emplace_back(tf_prefix + "dynamic_payload/start");
+  config.names.emplace_back(tf_prefix + "dynamic_payload/stop");
+  config.names.emplace_back(tf_prefix + "dynamic_payload/dynamic_payload_async_success");
   
   return config;
 }
@@ -381,6 +386,10 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     set_tool_contact_srv_ =  get_node()->create_service<rightbot_interfaces::srv::UrSetToolContact>(
         "~/set_tool_contact",
         std::bind(&GPIOController::setToolContact, this, std::placeholders::_1, std::placeholders::_2));
+    
+    set_dynamic_payload_srv_ = get_node()->create_service<rightbot_interfaces::srv::UrSetDynamicPayload>(
+        "~/set_dynamic_payload",
+        std::bind(&GPIOController::setDynamicPayload, this, std::placeholders::_1, std::placeholders::_2));
 
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
@@ -404,6 +413,7 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
     set_tool_contact_srv_.reset();
+    set_dynamic_payload_srv_.reset();
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
@@ -671,14 +681,14 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
   switch (req->command_type) {
     case UrSetDynamicPayload::Request::ACTIVATE_DYNAMIC_PAYLOAD: {
       RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
-      command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-      command_interfaces_[CommandInterfaces::START_TOOL_CONTACT].set_value(1.0);
+      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::START_DYNAMIC_PAYLOAD].set_value(1.0);
       break;
     }
     case UrSetDynamicPayload::Request::DEACTIVATE_DYNAMIC_PAYLOAD: {
       RCLCPP_INFO(get_node()->get_logger(), "Stopping tool contact");
-      command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-      command_interfaces_[CommandInterfaces::STOP_TOOL_CONTACT].set_value(1.0);
+      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::STOP_DYNAMIC_PAYLOAD].set_value(1.0);
       break;
     }
     default: {
@@ -688,12 +698,12 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
     }
   }
   if (!waitForAsyncCommand(
-          [&]() { return command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].get_value(); })) {
+          [&]() { return command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value(); })) {
     RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set. (This might happen when using the "
                                           "mocked interface)");
   }
 
-  resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].get_value());
+  resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value());
 
   if (resp->status) {
     RCLCPP_INFO(get_node()->get_logger(), "payload has been set successfully");

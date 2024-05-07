@@ -341,6 +341,8 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "start", &start_dynamic_payload_));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "stop", &end_dynamic_payload_));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "dynamic_payload_async_success", &dynamic_payload_async_success_));
 
   return command_interfaces;
 }
@@ -835,7 +837,7 @@ void URPositionHardwareInterface::checkAsyncIO()
   }
 
   if(!std::isnan(start_dynamic_payload_) && ur_driver_ != nullptr) {
-    ur_driver_->startForceMode(
+    dynamic_payload_async_success_ = ur_driver_->startForceMode(
       {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
       {0, 0, 0, 0, 0, 0},
       {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
@@ -846,7 +848,7 @@ void URPositionHardwareInterface::checkAsyncIO()
   }
 
   if(!std::isnan(end_dynamic_payload_) && ur_driver_ != nullptr) {
-    ur_driver_->endForceMode();
+    dynamic_payload_async_success_ = ur_driver_->endForceMode();
     end_dynamic_payload_ = NO_NEW_CMD_;
   }
 
