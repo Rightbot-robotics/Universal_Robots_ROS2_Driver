@@ -14,3 +14,6 @@ input_double_register_24
 input_double_register_25
 input_double_register_26
 input_double_register_27
+input_double_register_28
+input_double_register_29
+input_double_register_30

@@ -640,6 +640,11 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     transformForceTorque();
     ur_ft_compensated_ = urcl_ft_sensor_measurements_;
 
+    {
+      std::lock_guard<std::mutex> lock(raw_wrench_cp_mutex_);
+      ur_ft_raw_wrench_cp_ = ur_ft_raw_wrench_;
+    }
+
     // TODO(anyone): logic for sending other stuff to higher level interface
 
     // pausing state follows runtime state when pausing
@@ -851,6 +856,14 @@ void URPositionHardwareInterface::checkAsyncIO()
     dynamic_payload_async_success_ = ur_driver_->endForceMode();
     end_dynamic_payload_ = NO_NEW_CMD_;
   }
+
+  {
+    std::lock_guard<std::mutex> lock(raw_wrench_cp_mutex_);
+    ur_ft_raw_wrench_cp_2_ = ur_ft_raw_wrench_cp_;
+  }
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(28, ur_ft_raw_wrench_cp_2_[0]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(29, ur_ft_raw_wrench_cp_2_[1]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(30, ur_ft_raw_wrench_cp_2_[2]);
 
 }
 

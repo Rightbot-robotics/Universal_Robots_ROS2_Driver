@@ -44,6 +44,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <mutex>
 
 // ros2_control hardware_interface
 #include "hardware_interface/hardware_info.hpp"
@@ -241,6 +242,9 @@ protected:
   urcl::vector6d_t ur_actual_tcp_speed_;
   urcl::vector6d_t ur_ft_raw_wrench_;
   urcl::vector6d_t ur_ft_compensated_;
+  urcl::vector6d_t ur_ft_raw_wrench_cp_;
+  urcl::vector6d_t ur_ft_raw_wrench_cp_2_;
+  std::mutex raw_wrench_cp_mutex_;
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;
