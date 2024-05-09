@@ -135,6 +135,7 @@ protected:
   void extractToolPose();
   void transformForceTorque();
   void toolContactCallback(urcl::control::ToolContactResult result);
+  void payloadEstimationResultCallback();
 
   urcl::vector6d_t urcl_position_commands_;
   urcl::vector6d_t urcl_position_commands_old_;
@@ -207,11 +208,6 @@ protected:
   double tool_contact_result_;
   double tool_contact_async_success_;
 
-  // dynamic payload stuff
-  double start_dynamic_payload_;
-  double end_dynamic_payload_;
-  double dynamic_payload_async_success_;
-
   // copy of non double values
   std::array<double, 18> actual_dig_out_bits_copy_;
   std::array<double, 18> actual_dig_in_bits_copy_;
@@ -245,6 +241,9 @@ protected:
   urcl::vector6d_t ur_ft_raw_wrench_cp_;
   urcl::vector6d_t ur_ft_raw_wrench_cp_2_;
   std::mutex raw_wrench_cp_mutex_;
+  double payload_estim_command_type_;
+  double payload_estim_move_distance_;
+  double dynamic_payload_async_success_;
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;

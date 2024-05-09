@@ -109,8 +109,8 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "tool_contact/tool_contact_async_success");
 
   // dynamic payload stuff
-  config.names.emplace_back(tf_prefix + "dynamic_payload/start");
-  config.names.emplace_back(tf_prefix + "dynamic_payload/stop");
+  config.names.emplace_back(tf_prefix + "dynamic_payload/command_type");
+  config.names.emplace_back(tf_prefix + "dynamic_payload/move_distance");
   config.names.emplace_back(tf_prefix + "dynamic_payload/dynamic_payload_async_success");
   
   return config;
@@ -678,17 +678,17 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
 {
   using namespace rightbot_interfaces::srv;
 
+  auto start_time = std::chrono::system_clock::now();
+
   switch (req->command_type) {
-    case UrSetDynamicPayload::Request::ACTIVATE_DYNAMIC_PAYLOAD: {
+    case UrSetDynamicPayload::Request::TOP_LIFT:
+    case UrSetDynamicPayload::Request::FRONT_LIFT:
+    case UrSetDynamicPayload::Request::FRONT_DRAG:
+    {
       RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-      command_interfaces_[CommandInterfaces::START_DYNAMIC_PAYLOAD].set_value(1.0);
-      break;
-    }
-    case UrSetDynamicPayload::Request::DEACTIVATE_DYNAMIC_PAYLOAD: {
-      RCLCPP_INFO(get_node()->get_logger(), "Stopping tool contact");
-      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
-      command_interfaces_[CommandInterfaces::STOP_DYNAMIC_PAYLOAD].set_value(1.0);
+      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_COMMAND_TYPE].set_value(static_cast<double>(req->command_type));
+      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_MOVE_DISTANCE].set_value(req->move_distance);
       break;
     }
     default: {
@@ -697,13 +697,17 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       return false;
     }
   }
-  if (!waitForAsyncCommand(
+  if (!longWaitForAsyncCommand(
           [&]() { return command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value(); })) {
     RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set. (This might happen when using the "
                                           "mocked interface)");
   }
 
   resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value());
+
+  auto end_time = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end_time - start_time;
+  RCLCPP_INFO(get_node()->get_logger(), "Time elapsed: %f", elapsed_seconds.count());
 
   if (resp->status) {
     RCLCPP_INFO(get_node()->get_logger(), "payload has been set successfully");
@@ -758,6 +762,18 @@ bool GPIOController::waitForAsyncCommand(std::function<double(void)> get_value)
     retries++;
 
     if (retries > maximum_retries)
+      return false;
+  }
+  return true;
+}
+
+bool GPIOController::longWaitForAsyncCommand(std::function<double(void)> get_value)
+{
+  auto wait_stop_time_point = std::chrono::system_clock::now() + std::chrono::seconds(5);
+  while (get_value() == ASYNC_WAITING) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    if (std::chrono::system_clock::now() > wait_stop_time_point)
       return false;
   }
   return true;

@@ -338,9 +338,9 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
       hardware_interface::CommandInterface(tf_prefix + "tool_contact", "tool_contact_async_success", &tool_contact_async_success_));
   
   command_interfaces.emplace_back(
-      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "start", &start_dynamic_payload_));
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "command_type", &payload_estim_command_type_));
   command_interfaces.emplace_back(
-      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "stop", &end_dynamic_payload_));
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "move_distance", &payload_estim_move_distance_));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "dynamic_payload_async_success", &dynamic_payload_async_success_));
 
@@ -515,6 +515,10 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
 
   ur_driver_->setToolContactResultCallback(
     std::bind(&URPositionHardwareInterface::toolContactCallback, this, std::placeholders::_1)
+  );
+
+  ur_driver_->setPayloadEstimationResultCallback(
+    std::bind(&URPositionHardwareInterface::payloadEstimationResultCallback, this)
   );
 
   // setting default payload values to registers
@@ -745,8 +749,8 @@ void URPositionHardwareInterface::initAsyncIO()
   start_tool_contact_ = NO_NEW_CMD_;
   end_tool_contact_ = NO_NEW_CMD_;
 
-  start_dynamic_payload_ = NO_NEW_CMD_;
-  end_dynamic_payload_ = NO_NEW_CMD_;
+  payload_estim_command_type_ = NO_NEW_CMD_;
+  payload_estim_move_distance_ = NO_NEW_CMD_;
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -805,14 +809,15 @@ void URPositionHardwareInterface::checkAsyncIO()
   if (!std::isnan(payload_mass_) && !std::isnan(payload_center_of_gravity_[0]) &&
       !std::isnan(payload_center_of_gravity_[1]) && !std::isnan(payload_center_of_gravity_[2]) &&
       ur_driver_ != nullptr) {
-    payload_async_success_ = true;
-    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(24, payload_mass_);
-    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(25, payload_center_of_gravity_[0]);
-    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(26, payload_center_of_gravity_[1]);
-    payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(27, payload_center_of_gravity_[2]);
-    if(!payload_async_success_) {
-      RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Could not set payload registers");
-    }
+    // payload_async_success_ = true;
+    // payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(24, payload_mass_);
+    // payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(25, payload_center_of_gravity_[0]);
+    // payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(26, payload_center_of_gravity_[1]);
+    // payload_async_success_ = payload_async_success_ && ur_driver_->getRTDEWriter().sendInputDoubleRegister(27, payload_center_of_gravity_[2]);
+    // if(!payload_async_success_) {
+    //   RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Could not set payload registers");
+    // }
+    payload_async_success_ = ur_driver_->setPayload(payload_mass_, payload_center_of_gravity_);
     payload_mass_ = NO_NEW_CMD_;
     payload_center_of_gravity_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
   }
@@ -841,20 +846,15 @@ void URPositionHardwareInterface::checkAsyncIO()
     end_tool_contact_ = NO_NEW_CMD_;
   }
 
-  if(!std::isnan(start_dynamic_payload_) && ur_driver_ != nullptr) {
-    dynamic_payload_async_success_ = ur_driver_->startForceMode(
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      {0, 0, 0, 0, 0, 0},
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-      2,
-      {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-    );
-    start_dynamic_payload_ = NO_NEW_CMD_;
-  }
-
-  if(!std::isnan(end_dynamic_payload_) && ur_driver_ != nullptr) {
-    dynamic_payload_async_success_ = ur_driver_->endForceMode();
-    end_dynamic_payload_ = NO_NEW_CMD_;
+  if(!std::isnan(payload_estim_command_type_) &&
+     !std::isnan(payload_estim_move_distance_) &&
+     ur_driver_ != nullptr) {
+    if(!ur_driver_->startPayloadEstimation(static_cast<urcl::control::PayloadEstimType>(payload_estim_command_type_), payload_estim_move_distance_))
+    {
+      dynamic_payload_async_success_ = false;
+    }
+    payload_estim_command_type_ = NO_NEW_CMD_;
+    payload_estim_move_distance_ = NO_NEW_CMD_;
   }
 
   {
@@ -864,6 +864,9 @@ void URPositionHardwareInterface::checkAsyncIO()
   ur_driver_->getRTDEWriter().sendInputDoubleRegister(28, ur_ft_raw_wrench_cp_2_[0]);
   ur_driver_->getRTDEWriter().sendInputDoubleRegister(29, ur_ft_raw_wrench_cp_2_[1]);
   ur_driver_->getRTDEWriter().sendInputDoubleRegister(30, ur_ft_raw_wrench_cp_2_[2]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(31, ur_ft_raw_wrench_cp_2_[3]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(32, ur_ft_raw_wrench_cp_2_[4]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(33, ur_ft_raw_wrench_cp_2_[5]);
 
 }
 
@@ -1021,6 +1024,11 @@ hardware_interface::return_type URPositionHardwareInterface::perform_command_mod
 void URPositionHardwareInterface::toolContactCallback(urcl::control::ToolContactResult result)
 {
   tool_contact_result_ = result == urcl::control::ToolContactResult::UNTIL_TOOL_CONTACT_RESULT_SUCCESS ? 1.0 : 0.0;
+}
+
+void URPositionHardwareInterface::payloadEstimationResultCallback()
+{
+  dynamic_payload_async_success_ = true;
 }
 }  // namespace ur_robot_driver
 

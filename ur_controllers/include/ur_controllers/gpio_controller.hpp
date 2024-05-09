@@ -91,8 +91,8 @@ enum CommandInterfaces
   START_TOOL_CONTACT = 39,
   STOP_TOOL_CONTACT = 40,
   TOOL_CONTACT_ASYNC_SUCCESS = 41,
-  START_DYNAMIC_PAYLOAD = 42,
-  STOP_DYNAMIC_PAYLOAD = 43,
+  DYNAMIC_PAYLOAD_COMMAND_TYPE = 42,
+  DYNAMIC_PAYLOAD_MOVE_DISTANCE = 43,
   DYNAMIC_PAYLOAD_ASYNC_SUCCESS = 44,
   LEFT_GRIPPER_PIN = 16,
   RIGHT_GRIPPER_PIN = 17,
@@ -232,6 +232,7 @@ protected:
    * have been reached
    */
   bool waitForAsyncCommand(std::function<double(void)> get_value);
+  bool longWaitForAsyncCommand(std::function<double(void)> get_value);
 };
 }  // namespace ur_controllers
 
