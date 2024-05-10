@@ -242,7 +242,7 @@ protected:
   urcl::vector6d_t ur_ft_raw_wrench_cp_2_;
   std::mutex raw_wrench_cp_mutex_;
   double ur_target_payload_;
-  urcl::vector3dt ur_target_cog_;
+  urcl::vector3d_t ur_target_cog_;
   double payload_estim_command_type_;
   double payload_estim_move_distance_;
   double dynamic_payload_async_success_;
