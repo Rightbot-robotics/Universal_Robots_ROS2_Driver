@@ -27,3 +27,5 @@ safety_status_bits
 actual_current
 actual_TCP_speed
 ft_raw_wrench
+payload
+payload_cog

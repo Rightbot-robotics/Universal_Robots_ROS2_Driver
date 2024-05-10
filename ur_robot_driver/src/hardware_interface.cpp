@@ -254,6 +254,14 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
         hardware_interface::StateInterface(tf_prefix + "payoad_info", "ur_ft_compensated_" + std::to_string(i), &ur_ft_compensated_[i]));
   }
 
+  state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payoad_info", "target_payload", &ur_target_payload_));
+  
+  for(size_t i = 0; i < 3; ++i) {
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(tf_prefix + "payoad_info", "target_cog_" + std::to_string(i), &ur_target_cog_[i]));
+  }
+
   return state_interfaces;
 }
 
@@ -637,6 +645,8 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
 
     readData(data_pkg, "actual_TCP_speed", ur_actual_tcp_speed_);
     readData(data_pkg, "ft_raw_wrench", ur_ft_raw_wrench_);
+    readData(data_pkg, "payload", ur_target_payload_);
+    readData(data_pkg, "payload_cog", ur_target_cog_);
     ur_actual_tcp_pose_ = urcl_tcp_pose_;
 
     // required transforms

@@ -193,6 +193,12 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
     config.names.emplace_back(tf_prefix + "payoad_info/ur_ft_compensated_" + std::to_string(i));
   }
 
+  config.names.emplace_back(tf_prefix + "payoad_info/target_payload");
+
+  for(size_t i = 0; i < 3; ++i) {
+    config.names.emplace_back(tf_prefix + "payoad_info/target_cog_" + std::to_string(i));
+  }
+
   return config;
 }
 
@@ -320,6 +326,11 @@ void GPIOController::publishPayloadInfo()
     payload_info_msg_.ur_actual_tcp_speed[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_SPEED + i].get_value();
     payload_info_msg_.ur_ft_raw_wrench[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_RAW_FT + i].get_value();
     payload_info_msg_.ur_ft_compensated[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_FT_COMP + i].get_value();
+  }
+
+  payload_info_msg_.target_payload = state_interfaces_[StateInterfaces::PAYLOAD_INFO_TARGET_PAYLOD].get_value();
+  for(size_t i = 0; i < 3; ++i) {
+    payload_info_msg_.target_cog[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_TARGET_COG + i].get_value();
   }
   payload_info_pub_->publish(payload_info_msg_);
 }
