@@ -649,7 +649,7 @@ bool GPIOController::setToolContact(const rightbot_interfaces::srv::UrSetToolCon
 
   switch (req->command_type) {
     case UrSetToolContact::Request::START_TOOL_CONTACT: {
-      RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
+      RCLCPP_INFO(get_node()->get_logger(), "Starting tool contact");
       command_interfaces_[CommandInterfaces::TOOL_CONTACT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
       command_interfaces_[CommandInterfaces::START_TOOL_CONTACT].set_value(1.0);
       break;
@@ -696,7 +696,9 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
     case UrSetDynamicPayload::Request::FRONT_LIFT:
     case UrSetDynamicPayload::Request::FRONT_DRAG:
     {
-      RCLCPP_INFO(get_node()->get_logger(), "Setting tool contact");
+      RCLCPP_INFO(get_node()->get_logger(), "Setting dynamic payload");
+      RCLCPP_INFO(get_node()->get_logger(), "Command type: %d", req->command_type);
+      RCLCPP_INFO(get_node()->get_logger(), "Move distance: %f", req->move_distance);
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_COMMAND_TYPE].set_value(static_cast<double>(req->command_type));
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_MOVE_DISTANCE].set_value(req->move_distance);
@@ -712,13 +714,15 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
           [&]() { return command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value(); })) {
     RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set. (This might happen when using the "
                                           "mocked interface)");
+      resp->status = false;
+      return false;
   }
 
   resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value());
 
   auto end_time = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_seconds = end_time - start_time;
-  RCLCPP_INFO(get_node()->get_logger(), "Time elapsed: %f", elapsed_seconds.count());
+  RCLCPP_INFO(get_node()->get_logger(), "Time elapsed for payload estimation: %f", elapsed_seconds.count());
 
   if (resp->status) {
     RCLCPP_INFO(get_node()->get_logger(), "payload has been set successfully");
