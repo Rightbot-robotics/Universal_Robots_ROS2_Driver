@@ -784,7 +784,7 @@ bool GPIOController::waitForAsyncCommand(std::function<double(void)> get_value)
 
 bool GPIOController::longWaitForAsyncCommand(std::function<double(void)> get_value)
 {
-  auto wait_stop_time_point = std::chrono::system_clock::now() + std::chrono::seconds(5);
+  auto wait_stop_time_point = std::chrono::system_clock::now() + std::chrono::seconds(15);
   while (get_value() == ASYNC_WAITING) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
