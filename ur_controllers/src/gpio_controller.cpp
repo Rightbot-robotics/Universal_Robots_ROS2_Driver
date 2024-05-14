@@ -695,6 +695,7 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
     case UrSetDynamicPayload::Request::TOP_LIFT:
     case UrSetDynamicPayload::Request::FRONT_LIFT:
     case UrSetDynamicPayload::Request::FRONT_DRAG:
+    case UrSetDynamicPayload::Request::TOP_DRAG:
     {
       RCLCPP_INFO(get_node()->get_logger(), "Setting dynamic payload");
       RCLCPP_INFO(get_node()->get_logger(), "Command type: %d", req->command_type);
