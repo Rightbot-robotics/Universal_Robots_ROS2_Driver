@@ -20,3 +20,9 @@ input_double_register_30
 input_double_register_31
 input_double_register_32
 input_double_register_33
+input_double_register_34
+input_double_register_35
+input_double_register_36
+input_double_register_37
+input_double_register_38
+input_double_register_39

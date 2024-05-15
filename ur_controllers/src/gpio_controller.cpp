@@ -112,6 +112,7 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "dynamic_payload/command_type");
   config.names.emplace_back(tf_prefix + "dynamic_payload/move_distance");
   config.names.emplace_back(tf_prefix + "dynamic_payload/secondary_move_distance");
+  config.names.emplace_back(tf_prefix + "dynamic_payload/move_speed");
   config.names.emplace_back(tf_prefix + "dynamic_payload/dynamic_payload_async_success");
   
   return config;
@@ -705,6 +706,7 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_COMMAND_TYPE].set_value(static_cast<double>(req->command_type));
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_MOVE_DISTANCE].set_value(req->move_distance);
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_SECONDARY_MOVE_DISTANCE].set_value(req->secondary_move_distance);
+      command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_MOVE_SPEED].set_value(req->move_speed);
       break;
     }
     default: {

@@ -352,6 +352,8 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "secondary_move_distance", &payload_estim_secondary_move_distance_));
   command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "move_speed", &payload_estim_move_speed_));
+  command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "dynamic_payload_async_success", &dynamic_payload_async_success_));
 
   return command_interfaces;
@@ -764,6 +766,7 @@ void URPositionHardwareInterface::initAsyncIO()
   payload_estim_command_type_ = NO_NEW_CMD_;
   payload_estim_move_distance_ = NO_NEW_CMD_;
   payload_estim_secondary_move_distance_ = NO_NEW_CMD_;
+  payload_estim_move_speed_ = NO_NEW_CMD_;
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -771,6 +774,18 @@ void URPositionHardwareInterface::checkAsyncIO()
   if (!rtde_comm_has_been_started_) {
     return;
   }
+
+  {
+    std::lock_guard<std::mutex> lock(raw_wrench_cp_mutex_);
+    ur_ft_raw_wrench_cp_2_ = ur_ft_raw_wrench_cp_;
+  }
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(28, ur_ft_raw_wrench_cp_2_[0]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(29, ur_ft_raw_wrench_cp_2_[1]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(30, ur_ft_raw_wrench_cp_2_[2]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(31, ur_ft_raw_wrench_cp_2_[3]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(32, ur_ft_raw_wrench_cp_2_[4]);
+  ur_driver_->getRTDEWriter().sendInputDoubleRegister(33, ur_ft_raw_wrench_cp_2_[5]);
+
   for (size_t i = 0; i < 18; ++i) {
     if (!std::isnan(standard_dig_out_bits_cmd_[i]) && ur_driver_ != nullptr) {
       if (i <= 7) {
@@ -837,6 +852,12 @@ void URPositionHardwareInterface::checkAsyncIO()
 
   if (!std::isnan(zero_ftsensor_cmd_) && ur_driver_ != nullptr) {
     zero_ftsensor_async_success_ = ur_driver_->zeroFTSensor();
+    ur_driver_->getRTDEWriter().sendInputDoubleRegister(34, ur_ft_raw_wrench_cp_2_[0]);
+    ur_driver_->getRTDEWriter().sendInputDoubleRegister(35, ur_ft_raw_wrench_cp_2_[1]);
+    ur_driver_->getRTDEWriter().sendInputDoubleRegister(36, ur_ft_raw_wrench_cp_2_[2]);
+    ur_driver_->getRTDEWriter().sendInputDoubleRegister(37, ur_ft_raw_wrench_cp_2_[3]);
+    ur_driver_->getRTDEWriter().sendInputDoubleRegister(38, ur_ft_raw_wrench_cp_2_[4]);
+    ur_driver_->getRTDEWriter().sendInputDoubleRegister(39, ur_ft_raw_wrench_cp_2_[5]);
     zero_ftsensor_cmd_ = NO_NEW_CMD_;
   }
 
@@ -862,26 +883,17 @@ void URPositionHardwareInterface::checkAsyncIO()
   if(!std::isnan(payload_estim_command_type_) &&
      !std::isnan(payload_estim_move_distance_) &&
      !std::isnan(payload_estim_secondary_move_distance_) &&
+     !std::isnan(payload_estim_move_speed_) &&
      ur_driver_ != nullptr) {
-    if(!ur_driver_->startPayloadEstimation(static_cast<urcl::control::PayloadEstimType>(payload_estim_command_type_), payload_estim_move_distance_, payload_estim_secondary_move_distance_))
+    if(!ur_driver_->startPayloadEstimation(static_cast<urcl::control::PayloadEstimType>(payload_estim_command_type_), payload_estim_move_distance_, payload_estim_secondary_move_distance_, payload_estim_move_speed_))
     {
       dynamic_payload_async_success_ = false;
     }
     payload_estim_command_type_ = NO_NEW_CMD_;
     payload_estim_move_distance_ = NO_NEW_CMD_;
     payload_estim_secondary_move_distance_ = NO_NEW_CMD_;
+    payload_estim_move_speed_ = NO_NEW_CMD_;
   }
-
-  {
-    std::lock_guard<std::mutex> lock(raw_wrench_cp_mutex_);
-    ur_ft_raw_wrench_cp_2_ = ur_ft_raw_wrench_cp_;
-  }
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(28, ur_ft_raw_wrench_cp_2_[0]);
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(29, ur_ft_raw_wrench_cp_2_[1]);
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(30, ur_ft_raw_wrench_cp_2_[2]);
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(31, ur_ft_raw_wrench_cp_2_[3]);
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(32, ur_ft_raw_wrench_cp_2_[4]);
-  ur_driver_->getRTDEWriter().sendInputDoubleRegister(33, ur_ft_raw_wrench_cp_2_[5]);
 
 }
 

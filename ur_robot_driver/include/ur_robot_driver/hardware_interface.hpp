@@ -246,6 +246,7 @@ protected:
   double payload_estim_command_type_;
   double payload_estim_move_distance_;
   double payload_estim_secondary_move_distance_;
+  double payload_estim_move_speed_;
   double dynamic_payload_async_success_;
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
