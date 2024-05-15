@@ -350,6 +350,8 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "move_distance", &payload_estim_move_distance_));
   command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "secondary_move_distance", &payload_estim_secondary_move_distance_));
+  command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "dynamic_payload_async_success", &dynamic_payload_async_success_));
 
   return command_interfaces;
@@ -761,6 +763,7 @@ void URPositionHardwareInterface::initAsyncIO()
 
   payload_estim_command_type_ = NO_NEW_CMD_;
   payload_estim_move_distance_ = NO_NEW_CMD_;
+  payload_estim_secondary_move_distance_ = NO_NEW_CMD_;
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -858,13 +861,15 @@ void URPositionHardwareInterface::checkAsyncIO()
 
   if(!std::isnan(payload_estim_command_type_) &&
      !std::isnan(payload_estim_move_distance_) &&
+     !std::isnan(payload_estim_secondary_move_distance_) &&
      ur_driver_ != nullptr) {
-    if(!ur_driver_->startPayloadEstimation(static_cast<urcl::control::PayloadEstimType>(payload_estim_command_type_), payload_estim_move_distance_))
+    if(!ur_driver_->startPayloadEstimation(static_cast<urcl::control::PayloadEstimType>(payload_estim_command_type_), payload_estim_move_distance_, payload_estim_secondary_move_distance_))
     {
       dynamic_payload_async_success_ = false;
     }
     payload_estim_command_type_ = NO_NEW_CMD_;
     payload_estim_move_distance_ = NO_NEW_CMD_;
+    payload_estim_secondary_move_distance_ = NO_NEW_CMD_;
   }
 
   {
