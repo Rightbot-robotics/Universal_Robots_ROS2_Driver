@@ -717,8 +717,10 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
   }
   if (!longWaitForAsyncCommand(
           [&]() { return command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value(); })) {
-    RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set. (This might happen when using the "
-                                          "mocked interface)");
+      RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set.");
+      if (state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0) {
+        RCLCPP_WARN(get_node()->get_logger(), "Arm in fault returning false for set dynamic payload service");
+      }
       resp->status = false;
       return false;
   }
@@ -793,7 +795,7 @@ bool GPIOController::longWaitForAsyncCommand(std::function<double(void)> get_val
   while (get_value() == ASYNC_WAITING) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    if (std::chrono::system_clock::now() > wait_stop_time_point)
+    if (std::chrono::system_clock::now() > wait_stop_time_point || state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0)
       return false;
   }
   return true;
