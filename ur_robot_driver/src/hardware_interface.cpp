@@ -262,6 +262,9 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
         hardware_interface::StateInterface(tf_prefix + "payoad_info", "target_cog_" + std::to_string(i), &ur_target_cog_[i]));
   }
 
+  state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "gpio", "runtime_state", &runtime_state_copy_));
+
   return state_interfaces;
 }
 
@@ -921,6 +924,7 @@ void URPositionHardwareInterface::updateNonDoubleValues()
   robot_mode_copy_ = static_cast<double>(robot_mode_);
   safety_mode_copy_ = static_cast<double>(safety_mode_);
   tool_mode_copy_ = static_cast<double>(tool_mode_);
+  runtime_state_copy_ = static_cast<double>(runtime_state_);
   system_interface_initialized_ = initialized_ ? 1.0 : 0.0;
   robot_program_running_copy_ = robot_program_running_ ? 1.0 : 0.0;
 }

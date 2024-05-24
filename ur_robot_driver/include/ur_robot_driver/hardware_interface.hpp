@@ -217,6 +217,7 @@ protected:
   double tool_output_voltage_copy_;
   double robot_mode_copy_;
   double safety_mode_copy_;
+  double runtime_state_copy_;
   std::array<double, 4> robot_status_bits_copy_;
   std::array<double, 11> safety_status_bits_copy_;
 

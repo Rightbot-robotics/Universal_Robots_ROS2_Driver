@@ -50,6 +50,7 @@
 #include "ur_msgs/msg/tool_data_msg.hpp"
 #include "ur_dashboard_msgs/msg/robot_mode.hpp"
 #include "ur_dashboard_msgs/msg/safety_mode.hpp"
+#include "ur_dashboard_msgs/msg/runtime_state.hpp"
 #include "ur_msgs/srv/set_io.hpp"
 #include "ur_msgs/srv/set_speed_slider_fraction.hpp"
 #include "ur_msgs/srv/set_payload.hpp"
@@ -125,7 +126,8 @@ enum StateInterfaces
   PAYLOAD_INFO_UR_RAW_FT = 84,
   PAYLOAD_INFO_UR_FT_COMP = 90,
   PAYLOAD_INFO_TARGET_PAYLOD = 96,
-  PAYLOAD_INFO_TARGET_COG = 97
+  PAYLOAD_INFO_TARGET_COG = 97,
+  RUNTIME_STATE = 100
 };
 
 class GPIOController : public controller_interface::ControllerInterface
@@ -184,6 +186,8 @@ private:
 
   void publishPayloadInfo();
 
+  void publishRuntimeStateInfo();
+
 protected:
   void initMsgs();
 
@@ -213,6 +217,7 @@ protected:
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> program_state_pub_;
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> tool_contact_result_pub_;
   std::shared_ptr<rclcpp::Publisher<rightbot_interfaces::msg::UrPayloadInfo>> payload_info_pub_;
+  std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::RuntimeState>> runtime_state_pub_;
 
   ur_msgs::msg::IOStates io_msg_;
   ur_msgs::msg::ToolDataMsg tool_data_msg_;
@@ -221,6 +226,7 @@ protected:
   std_msgs::msg::Bool program_running_msg_;
   std_msgs::msg::Bool tool_contact_result_msg_;
   rightbot_interfaces::msg::UrPayloadInfo payload_info_msg_;
+  ur_dashboard_msgs::msg::RuntimeState runtime_state_msg_;
 
   // Parameters from ROS for gpio_controller
   std::shared_ptr<gpio_controller::ParamListener> param_listener_;

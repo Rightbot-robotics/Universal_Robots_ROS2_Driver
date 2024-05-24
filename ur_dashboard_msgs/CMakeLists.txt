@@ -10,6 +10,7 @@ set(msg_files
   msg/ProgramState.msg
   msg/RobotMode.msg
   msg/SafetyMode.msg
+  msg/RuntimeState.msg
 )
 
 set(srv_files

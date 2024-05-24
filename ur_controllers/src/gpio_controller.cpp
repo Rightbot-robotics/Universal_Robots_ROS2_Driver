@@ -201,6 +201,8 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
     config.names.emplace_back(tf_prefix + "payoad_info/target_cog_" + std::to_string(i));
   }
 
+  config.names.emplace_back(tf_prefix + "gpio/runtime_state");
+
   return config;
 }
 
@@ -214,6 +216,7 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishProgramRunning();
   publishToolContactResult();
   publishPayloadInfo();
+  publishRuntimeStateInfo();
   return controller_interface::return_type::OK;
 }
 
@@ -337,6 +340,13 @@ void GPIOController::publishPayloadInfo()
   payload_info_pub_->publish(payload_info_msg_);
 }
 
+void GPIOController::publishRuntimeStateInfo()
+{
+  auto runtime_state_value = static_cast<uint32_t>(state_interfaces_[StateInterfaces::RUNTIME_STATE].get_value());
+  runtime_state_msg_.state = runtime_state_value;
+  runtime_state_pub_->publish(runtime_state_msg_);
+}
+
 controller_interface::CallbackReturn
 ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
@@ -366,6 +376,8 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     tool_contact_result_pub_ = get_node()->create_publisher<std_msgs::msg::Bool>("~/tool_contact_result", rclcpp::SystemDefaultsQoS());
 
     payload_info_pub_ = get_node()->create_publisher<rightbot_interfaces::msg::UrPayloadInfo>("~/payload_info", rclcpp::SystemDefaultsQoS());
+
+    runtime_state_pub_ = get_node()->create_publisher<ur_dashboard_msgs::msg::RuntimeState>("~/runtime_state", rclcpp::SystemDefaultsQoS());
 
     set_io_srv_ = get_node()->create_service<ur_msgs::srv::SetIO>(
         "~/set_io", std::bind(&GPIOController::setIO, this, std::placeholders::_1, std::placeholders::_2));
@@ -422,6 +434,7 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     program_state_pub_.reset();
     tool_contact_result_pub_.reset();
     payload_info_pub_.reset();
+    runtime_state_pub_.reset();
     set_io_srv_.reset();
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
@@ -591,6 +604,7 @@ bool GPIOController::handBackControl(std_srvs::srv::Trigger::Request::SharedPtr 
 bool GPIOController::setPayload(const ur_msgs::srv::SetPayload::Request::SharedPtr req,
                                 ur_msgs::srv::SetPayload::Response::SharedPtr resp)
 {
+  RCLCPP_INFO(get_node()->get_logger(), "Set payload request received. Mass: %.2f kg", req->mass);
   // reset success flag
   command_interfaces_[CommandInterfaces::PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
 
@@ -702,6 +716,8 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       RCLCPP_INFO(get_node()->get_logger(), "Setting dynamic payload");
       RCLCPP_INFO(get_node()->get_logger(), "Command type: %d", req->command_type);
       RCLCPP_INFO(get_node()->get_logger(), "Move distance: %f", req->move_distance);
+      RCLCPP_INFO(get_node()->get_logger(), "Secondary move distance: %f", req->secondary_move_distance);
+      RCLCPP_INFO(get_node()->get_logger(), "Move speed: %f", req->move_speed);
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_COMMAND_TYPE].set_value(static_cast<double>(req->command_type));
       command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_MOVE_DISTANCE].set_value(req->move_distance);
@@ -795,7 +811,10 @@ bool GPIOController::longWaitForAsyncCommand(std::function<double(void)> get_val
   while (get_value() == ASYNC_WAITING) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    if (std::chrono::system_clock::now() > wait_stop_time_point || state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0)
+    if (
+      std::chrono::system_clock::now() > wait_stop_time_point ||
+      state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0 ||
+      state_interfaces_[StateInterfaces::RUNTIME_STATE].get_value() != 2.0)
       return false;
   }
   return true;
