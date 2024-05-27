@@ -64,6 +64,8 @@
 #include "rightbot_interfaces/srv/ur_set_dynamic_payload.hpp"
 #include "rightbot_interfaces/msg/ur_payload_info.hpp"
 
+#include <mutex>
+
 namespace ur_controllers
 {
 enum CommandInterfaces
@@ -127,7 +129,8 @@ enum StateInterfaces
   PAYLOAD_INFO_UR_FT_COMP = 90,
   PAYLOAD_INFO_TARGET_PAYLOD = 96,
   PAYLOAD_INFO_TARGET_COG = 97,
-  RUNTIME_STATE = 100
+  PAYLOAD_INFO_ESTIM_EXEC_STATE = 100,
+  RUNTIME_STATE = 101
 };
 
 class GPIOController : public controller_interface::ControllerInterface
@@ -243,6 +246,9 @@ protected:
    */
   bool waitForAsyncCommand(std::function<double(void)> get_value);
   bool longWaitForAsyncCommand(std::function<double(void)> get_value);
+  bool waitForCondition(std::function<bool(void)> pass_condition, double timeout, std::function<bool(void)> break_condition = []() { return false; }, int64_t iteration_wait_ms = 100);
+  std::mutex payload_estim_state_mutex_;
+  int32_t payload_estimation_execution_state_;
 };
 }  // namespace ur_controllers
 

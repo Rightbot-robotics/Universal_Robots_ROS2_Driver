@@ -201,6 +201,8 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
     config.names.emplace_back(tf_prefix + "payoad_info/target_cog_" + std::to_string(i));
   }
 
+  config.names.emplace_back(tf_prefix + "payoad_info/payload_estim_exec_state");
+
   config.names.emplace_back(tf_prefix + "gpio/runtime_state");
 
   return config;
@@ -337,7 +339,11 @@ void GPIOController::publishPayloadInfo()
   for(size_t i = 0; i < 3; ++i) {
     payload_info_msg_.target_cog[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_TARGET_COG + i].get_value();
   }
+  payload_info_msg_.payload_estimation_execution_state = static_cast<int32_t>(state_interfaces_[StateInterfaces::PAYLOAD_INFO_ESTIM_EXEC_STATE].get_value());
   payload_info_pub_->publish(payload_info_msg_);
+  payload_estim_state_mutex_.lock();
+  payload_estimation_execution_state_ = payload_info_msg_.payload_estimation_execution_state;
+  payload_estim_state_mutex_.unlock();
 }
 
 void GPIOController::publishRuntimeStateInfo()
@@ -704,8 +710,12 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
                                 rightbot_interfaces::srv::UrSetDynamicPayload::Response::SharedPtr resp)
 {
   using namespace rightbot_interfaces::srv;
+  using namespace rightbot_interfaces::msg;
 
   auto start_time = std::chrono::system_clock::now();
+  int32_t payload_estimation_execution_state;
+  bool loop_exit_condition;
+  bool loop_break_condition;
 
   switch (req->command_type) {
     case UrSetDynamicPayload::Request::TOP_LIFT:
@@ -731,15 +741,80 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       return false;
     }
   }
-  if (!longWaitForAsyncCommand(
-          [&]() { return command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value(); })) {
-      RCLCPP_WARN(get_node()->get_logger(), "Could not verify that payload was set.");
-      if (state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0) {
-        RCLCPP_WARN(get_node()->get_logger(), "Arm in fault returning false for set dynamic payload service");
+
+  if (!waitForCondition(
+    [&]() {
+      payload_estim_state_mutex_.lock();
+      payload_estimation_execution_state = payload_estimation_execution_state_;
+      payload_estim_state_mutex_.unlock();
+      loop_exit_condition = false;
+      if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_ESTIMATING)
+      {
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation in progress");
+        loop_exit_condition = true;
       }
-      resp->status = false;
-      return false;
+      return loop_exit_condition;
+    },
+    0.1,
+    [&]() {
+      loop_break_condition = false;
+      if(state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0) {
+        RCLCPP_ERROR(get_node()->get_logger(), "Arm went into fault during payload estimation");
+        loop_break_condition = true;
+      }
+      if(state_interfaces_[StateInterfaces::RUNTIME_STATE].get_value() != 2.0) {
+        RCLCPP_ERROR(get_node()->get_logger(), "Urscript stopped during payload estimation");
+        loop_break_condition = true;
+      }
+      return loop_break_condition;
+    },
+    10
+  ))
+  {
+    RCLCPP_ERROR(get_node()->get_logger(), "Error encountered while starting payload estimation");
+    resp->status = false;
+    return false;
   }
+  RCLCPP_INFO(get_node()->get_logger(), "Payload estimation started");
+
+  if (!waitForCondition(
+    [&]() {
+      payload_estim_state_mutex_.lock();
+      payload_estimation_execution_state = payload_estimation_execution_state_;
+      payload_estim_state_mutex_.unlock();
+      loop_exit_condition = false;
+      if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_ESTIMATION_COMPLETE)
+      {
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation succeeded");
+        loop_exit_condition = true;
+      }
+      return loop_exit_condition;
+    },
+    15.0,
+    [&]() {
+      loop_break_condition = false;
+      if(payload_estimation_execution_state != UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_ESTIMATING)
+      {
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is not ESTIMATING");
+        loop_break_condition = true;
+      }
+      if(state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0) {
+        RCLCPP_ERROR(get_node()->get_logger(), "Arm went into fault during payload estimation");
+        loop_break_condition = true;
+      }
+      if(state_interfaces_[StateInterfaces::RUNTIME_STATE].get_value() != 2.0) {
+        RCLCPP_ERROR(get_node()->get_logger(), "Urscript stopped during payload estimation");
+        loop_break_condition = true;
+      }
+      return loop_break_condition;
+    }
+  ))
+  {
+    RCLCPP_ERROR(get_node()->get_logger(), "Error during payload estimation");
+    resp->status = false;
+    return false;
+  }
+  RCLCPP_INFO(get_node()->get_logger(), "Payload estimation succeeded");
 
   resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value());
 
@@ -816,6 +891,23 @@ bool GPIOController::longWaitForAsyncCommand(std::function<double(void)> get_val
       state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0 ||
       state_interfaces_[StateInterfaces::RUNTIME_STATE].get_value() != 2.0)
       return false;
+  }
+  return true;
+}
+
+bool GPIOController::waitForCondition(std::function<bool(void)> pass_condition, double timeout, std::function<bool(void)> break_condition, int64_t iteration_wait_ms)
+{
+  auto wait_stop_time_point = std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
+  while (!pass_condition()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(iteration_wait_ms));
+    if(std::chrono::system_clock::now() > wait_stop_time_point) {
+      RCLCPP_ERROR(get_node()->get_logger(), "Exiting wait loop due to timeout");
+      return false;
+    }
+    if(break_condition()) {
+      RCLCPP_ERROR(get_node()->get_logger(), "Exiting wait loop due to break condition");
+      return false;
+    }
   }
   return true;
 }

@@ -263,6 +263,9 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
   }
 
   state_interfaces.emplace_back(
+      hardware_interface::StateInterface(tf_prefix + "payoad_info", "payload_estim_exec_state", &payload_estim_execution_state_copy_));
+
+  state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "gpio", "runtime_state", &runtime_state_copy_));
 
   return state_interfaces;
@@ -654,6 +657,7 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readData(data_pkg, "ft_raw_wrench", ur_ft_raw_wrench_);
     readData(data_pkg, "payload", ur_target_payload_);
     readData(data_pkg, "payload_cog", ur_target_cog_);
+    readData(data_pkg, "input_int_register_0", payload_estim_execution_state_);
     ur_actual_tcp_pose_ = urcl_tcp_pose_;
 
     // required transforms
@@ -925,6 +929,7 @@ void URPositionHardwareInterface::updateNonDoubleValues()
   safety_mode_copy_ = static_cast<double>(safety_mode_);
   tool_mode_copy_ = static_cast<double>(tool_mode_);
   runtime_state_copy_ = static_cast<double>(runtime_state_);
+  payload_estim_execution_state_copy_ = static_cast<double>(payload_estim_execution_state_);
   system_interface_initialized_ = initialized_ ? 1.0 : 0.0;
   robot_program_running_copy_ = robot_program_running_ ? 1.0 : 0.0;
 }
