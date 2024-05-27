@@ -848,6 +848,24 @@ bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*r
 
   resp->success = static_cast<bool>(command_interfaces_[CommandInterfaces::ZERO_FTSENSOR_ASYNC_SUCCESS].get_value());
 
+  double compensated_resultant_force = 0.0, force_compenent;
+  if (!waitForCondition(
+    [&]() {
+      compensated_resultant_force = 0.0;
+      for(int i = 0; i < 3; i++) {
+        force_compenent = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_FT_COMP + i].get_value();
+        compensated_resultant_force += force_compenent * force_compenent;
+      }
+      return (compensated_resultant_force < 5.0);
+    },
+    2.0
+  )) {
+    RCLCPP_ERROR(get_node()->get_logger(), "Timeout: Could not zero the force torque sensor");
+    resp->success = false;
+  }
+
+  RCLCPP_INFO(get_node()->get_logger(), "Compensated resultant force: %f", compensated_resultant_force);
+
   if (resp->success) {
     RCLCPP_INFO(get_node()->get_logger(), "Successfully zeroed the force torque sensor");
   } else {
