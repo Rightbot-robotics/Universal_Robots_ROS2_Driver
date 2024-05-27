@@ -750,7 +750,7 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       loop_exit_condition = false;
       if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_ESTIMATING)
       {
-        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation in progress");
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is ESTIMATING");
         loop_exit_condition = true;
       }
       return loop_exit_condition;
@@ -785,7 +785,7 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       loop_exit_condition = false;
       if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_ESTIMATION_COMPLETE)
       {
-        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation succeeded");
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is ESTIMATION_COMPLETE");
         loop_exit_condition = true;
       }
       return loop_exit_condition;

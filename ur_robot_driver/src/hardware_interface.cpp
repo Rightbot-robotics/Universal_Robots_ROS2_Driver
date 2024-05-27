@@ -657,7 +657,7 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readData(data_pkg, "ft_raw_wrench", ur_ft_raw_wrench_);
     readData(data_pkg, "payload", ur_target_payload_);
     readData(data_pkg, "payload_cog", ur_target_cog_);
-    readData(data_pkg, "input_int_register_0", payload_estim_execution_state_);
+    readData(data_pkg, "output_int_register_0", payload_estim_execution_state_);
     ur_actual_tcp_pose_ = urcl_tcp_pose_;
 
     // required transforms
