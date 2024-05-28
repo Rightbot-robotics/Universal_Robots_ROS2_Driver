@@ -252,6 +252,14 @@ protected:
   double payload_estim_execution_state_copy_;
   double dynamic_payload_async_success_;
 
+  // box slip related stuff
+  double detect_box_slip_command_;
+  double detect_box_slip_async_success_;
+
+  // ur joints info stuffs
+  urcl::vector6d_t ur_target_joint_positions_;
+  urcl::vector6d_t ur_joint_position_deviations_;
+
   std::unique_ptr<urcl::UrDriver> ur_driver_;
   std::shared_ptr<std::thread> async_thread_;
 

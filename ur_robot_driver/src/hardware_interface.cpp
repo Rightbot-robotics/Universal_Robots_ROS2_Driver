@@ -267,6 +267,11 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
 
   state_interfaces.emplace_back(
       hardware_interface::StateInterface(tf_prefix + "gpio", "runtime_state", &runtime_state_copy_));
+  
+  for (size_t i = 0; i < info_.joints.size(); ++i) {
+    state_interfaces.emplace_back(hardware_interface::StateInterface(
+        tf_prefix + "joints_info", "position_deviation_" + std::to_string(i), &ur_joint_position_deviations_[i]));
+  }
 
   return state_interfaces;
 }
@@ -361,6 +366,11 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "move_speed", &payload_estim_move_speed_));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface(tf_prefix + "dynamic_payload", "dynamic_payload_async_success", &dynamic_payload_async_success_));
+
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "detect_box_slip", "command", &detect_box_slip_command_));
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface(tf_prefix + "detect_box_slip", "box_slip_detection_async_success", &detect_box_slip_async_success_));
 
   return command_interfaces;
 }
@@ -646,6 +656,7 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readData(data_pkg, "tool_temperature", tool_temperature_);
     readData(data_pkg, "robot_mode", robot_mode_);
     readData(data_pkg, "safety_mode", safety_mode_);
+    readData(data_pkg, "target_q", ur_target_joint_positions_);
     readBitsetData<uint32_t>(data_pkg, "robot_status_bits", robot_status_bits_);
     readBitsetData<uint32_t>(data_pkg, "safety_status_bits", safety_status_bits_);
     readBitsetData<uint64_t>(data_pkg, "actual_digital_input_bits", actual_dig_in_bits_);
@@ -712,6 +723,14 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
 
     updateNonDoubleValues();
 
+    // Update joint deviations values
+    ur_joint_position_deviations_[0] = ur_target_joint_positions_[0] - urcl_joint_positions_[0];
+    ur_joint_position_deviations_[1] = ur_target_joint_positions_[1] - urcl_joint_positions_[1];
+    ur_joint_position_deviations_[2] = ur_target_joint_positions_[2] - urcl_joint_positions_[2];
+    ur_joint_position_deviations_[3] = ur_target_joint_positions_[3] - urcl_joint_positions_[3];
+    ur_joint_position_deviations_[4] = ur_target_joint_positions_[4] - urcl_joint_positions_[4];
+    ur_joint_position_deviations_[5] = ur_target_joint_positions_[5] - urcl_joint_positions_[5];
+
     return hardware_interface::return_type::OK;
   }
   if (!non_blocking_read_)
@@ -774,6 +793,8 @@ void URPositionHardwareInterface::initAsyncIO()
   payload_estim_move_distance_ = NO_NEW_CMD_;
   payload_estim_secondary_move_distance_ = NO_NEW_CMD_;
   payload_estim_move_speed_ = NO_NEW_CMD_;
+
+  detect_box_slip_command_ = NO_NEW_CMD_;
 }
 
 void URPositionHardwareInterface::checkAsyncIO()
@@ -900,6 +921,11 @@ void URPositionHardwareInterface::checkAsyncIO()
     payload_estim_move_distance_ = NO_NEW_CMD_;
     payload_estim_secondary_move_distance_ = NO_NEW_CMD_;
     payload_estim_move_speed_ = NO_NEW_CMD_;
+  }
+
+  if(!std::isnan(detect_box_slip_command_) && ur_driver_ != nullptr) {
+    detect_box_slip_async_success_ = ur_driver_->setBoxSlipDetection(static_cast<int32_t>(detect_box_slip_command_));
+    detect_box_slip_command_ = NO_NEW_CMD_;
   }
 
 }

@@ -62,7 +62,9 @@
 #include "rightbot_interfaces/srv/ur_set_gravity.hpp"
 #include "rightbot_interfaces/srv/ur_set_tool_contact.hpp"
 #include "rightbot_interfaces/srv/ur_set_dynamic_payload.hpp"
+#include "rightbot_interfaces/srv/ur_detect_box_slip.hpp"
 #include "rightbot_interfaces/msg/ur_payload_info.hpp"
+#include "rightbot_interfaces/msg/ur_joints_info.hpp"
 
 #include <mutex>
 
@@ -99,6 +101,8 @@ enum CommandInterfaces
   DYNAMIC_PAYLOAD_SECONDARY_MOVE_DISTANCE = 44,
   DYNAMIC_PAYLOAD_MOVE_SPEED = 45,
   DYNAMIC_PAYLOAD_ASYNC_SUCCESS = 46,
+  BOX_SLIP_DETECTION_COMMAND_TYPE = 47,
+  BOX_SLIP_DETECTION_ASYNC_SUCCESS = 48,
   LEFT_GRIPPER_PIN = 16,
   RIGHT_GRIPPER_PIN = 17,
 };
@@ -130,7 +134,8 @@ enum StateInterfaces
   PAYLOAD_INFO_TARGET_PAYLOD = 96,
   PAYLOAD_INFO_TARGET_COG = 97,
   PAYLOAD_INFO_ESTIM_EXEC_STATE = 100,
-  RUNTIME_STATE = 101
+  RUNTIME_STATE = 101,
+  JOINTS_POSITION_DEVIATION = 102
 };
 
 class GPIOController : public controller_interface::ControllerInterface
@@ -174,6 +179,8 @@ private:
   bool setToolContact(rightbot_interfaces::srv::UrSetToolContact::Request::SharedPtr req, rightbot_interfaces::srv::UrSetToolContact::Response::SharedPtr resp);
 
   bool setDynamicPayload(rightbot_interfaces::srv::UrSetDynamicPayload::Request::SharedPtr req, rightbot_interfaces::srv::UrSetDynamicPayload::Response::SharedPtr resp);
+
+  bool setBoxSlipDetection(rightbot_interfaces::srv::UrDetectBoxSlip::Request::SharedPtr req, rightbot_interfaces::srv::UrDetectBoxSlip::Response::SharedPtr resp);
   
   void publishIO();
 
@@ -190,6 +197,8 @@ private:
   void publishPayloadInfo();
 
   void publishRuntimeStateInfo();
+
+  void publishJointsInfo();
 
 protected:
   void initMsgs();
@@ -212,6 +221,7 @@ protected:
   rclcpp::Service<rightbot_interfaces::srv::UrSetGravity>::SharedPtr set_gravity_srv_;
   rclcpp::Service<rightbot_interfaces::srv::UrSetToolContact>::SharedPtr set_tool_contact_srv_;
   rclcpp::Service<rightbot_interfaces::srv::UrSetDynamicPayload>::SharedPtr set_dynamic_payload_srv_;
+  rclcpp::Service<rightbot_interfaces::srv::UrDetectBoxSlip>::SharedPtr detect_box_slip_srv_;
 
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::IOStates>> io_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::ToolDataMsg>> tool_data_pub_;
@@ -221,6 +231,7 @@ protected:
   std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> tool_contact_result_pub_;
   std::shared_ptr<rclcpp::Publisher<rightbot_interfaces::msg::UrPayloadInfo>> payload_info_pub_;
   std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::RuntimeState>> runtime_state_pub_;
+  std::shared_ptr<rclcpp::Publisher<rightbot_interfaces::msg::UrJointsInfo>> joints_info_pub_;
 
   ur_msgs::msg::IOStates io_msg_;
   ur_msgs::msg::ToolDataMsg tool_data_msg_;
@@ -230,6 +241,7 @@ protected:
   std_msgs::msg::Bool tool_contact_result_msg_;
   rightbot_interfaces::msg::UrPayloadInfo payload_info_msg_;
   ur_dashboard_msgs::msg::RuntimeState runtime_state_msg_;
+  rightbot_interfaces::msg::UrJointsInfo joints_info_msg_;
 
   // Parameters from ROS for gpio_controller
   std::shared_ptr<gpio_controller::ParamListener> param_listener_;

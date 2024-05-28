@@ -114,6 +114,10 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back(tf_prefix + "dynamic_payload/secondary_move_distance");
   config.names.emplace_back(tf_prefix + "dynamic_payload/move_speed");
   config.names.emplace_back(tf_prefix + "dynamic_payload/dynamic_payload_async_success");
+
+  // box slip detection stuff
+  config.names.emplace_back(tf_prefix + "detect_box_slip/command");
+  config.names.emplace_back(tf_prefix + "detect_box_slip/box_slip_detection_async_success");
   
   return config;
 }
@@ -205,6 +209,10 @@ controller_interface::InterfaceConfiguration ur_controllers::GPIOController::sta
 
   config.names.emplace_back(tf_prefix + "gpio/runtime_state");
 
+  for(size_t i = 0; i < 6; ++i) {
+    config.names.emplace_back(tf_prefix + "joints_info/position_deviation_" + std::to_string(i));
+  }
+
   return config;
 }
 
@@ -219,6 +227,7 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
   publishToolContactResult();
   publishPayloadInfo();
   publishRuntimeStateInfo();
+  publishJointsInfo();
   return controller_interface::return_type::OK;
 }
 
@@ -353,6 +362,14 @@ void GPIOController::publishRuntimeStateInfo()
   runtime_state_pub_->publish(runtime_state_msg_);
 }
 
+void GPIOController::publishJointsInfo()
+{
+  for(size_t i = 0; i < 6; ++i) {
+    joints_info_msg_.position_deviation[i] = state_interfaces_[StateInterfaces::JOINTS_POSITION_DEVIATION + i].get_value();
+  }
+  joints_info_pub_->publish(joints_info_msg_);
+}
+
 controller_interface::CallbackReturn
 ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
@@ -384,6 +401,8 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     payload_info_pub_ = get_node()->create_publisher<rightbot_interfaces::msg::UrPayloadInfo>("~/payload_info", rclcpp::SystemDefaultsQoS());
 
     runtime_state_pub_ = get_node()->create_publisher<ur_dashboard_msgs::msg::RuntimeState>("~/runtime_state", rclcpp::SystemDefaultsQoS());
+
+    joints_info_pub_ = get_node()->create_publisher<rightbot_interfaces::msg::UrJointsInfo>("~/joints_info", rclcpp::SystemDefaultsQoS());
 
     set_io_srv_ = get_node()->create_service<ur_msgs::srv::SetIO>(
         "~/set_io", std::bind(&GPIOController::setIO, this, std::placeholders::_1, std::placeholders::_2));
@@ -421,6 +440,10 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     set_dynamic_payload_srv_ = get_node()->create_service<rightbot_interfaces::srv::UrSetDynamicPayload>(
         "~/set_dynamic_payload",
         std::bind(&GPIOController::setDynamicPayload, this, std::placeholders::_1, std::placeholders::_2));
+    
+    detect_box_slip_srv_ = get_node()->create_service<rightbot_interfaces::srv::UrDetectBoxSlip>(
+        "~/set_box_slip_detection",
+        std::bind(&GPIOController::setBoxSlipDetection, this, std::placeholders::_1, std::placeholders::_2));
 
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
@@ -441,11 +464,13 @@ ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*p
     tool_contact_result_pub_.reset();
     payload_info_pub_.reset();
     runtime_state_pub_.reset();
+    joints_info_pub_.reset();
     set_io_srv_.reset();
     set_gripper_srv_.reset();
     set_speed_slider_srv_.reset();
     set_tool_contact_srv_.reset();
     set_dynamic_payload_srv_.reset();
+    detect_box_slip_srv_.reset();
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
@@ -826,6 +851,44 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
     RCLCPP_INFO(get_node()->get_logger(), "payload has been set successfully");
   } else {
     RCLCPP_ERROR(get_node()->get_logger(), "Could not set the payload");
+    return false;
+  }
+
+  return true;
+}
+
+bool GPIOController::setBoxSlipDetection(const rightbot_interfaces::srv::UrDetectBoxSlip::Request::SharedPtr req,
+                                rightbot_interfaces::srv::UrDetectBoxSlip::Response::SharedPtr resp)
+{
+  RCLCPP_INFO(get_node()->get_logger(), "Received request to set box slip detection");
+  using namespace rightbot_interfaces::srv;
+
+  RCLCPP_INFO(get_node()->get_logger(), "Slip detection command type: %d", req->command_type);
+  switch (req->command_type) {
+    case UrDetectBoxSlip::Request::START_DETECTION:
+    case UrDetectBoxSlip::Request::STOP_DETECTION: {
+      command_interfaces_[CommandInterfaces::BOX_SLIP_DETECTION_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+      command_interfaces_[CommandInterfaces::BOX_SLIP_DETECTION_COMMAND_TYPE].set_value(static_cast<double>(req->command_type));
+      break;
+    }
+    default: {
+      RCLCPP_ERROR(get_node()->get_logger(), "Invalid command type");
+      resp->status = false;
+      return false;
+    }
+  }
+  if (!waitForAsyncCommand(
+          [&]() { return command_interfaces_[CommandInterfaces::BOX_SLIP_DETECTION_ASYNC_SUCCESS].get_value(); })) {
+    RCLCPP_WARN(get_node()->get_logger(), "Could not verify that box slip detection was set. (This might happen when using the "
+                                          "mocked interface)");
+  }
+
+  resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::BOX_SLIP_DETECTION_ASYNC_SUCCESS].get_value());
+
+  if (resp->status) {
+    RCLCPP_INFO(get_node()->get_logger(), "Box slip detection has been set successfully");
+  } else {
+    RCLCPP_ERROR(get_node()->get_logger(), "Could not set the box slip detection");
     return false;
   }
 
