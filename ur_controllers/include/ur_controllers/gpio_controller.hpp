@@ -174,6 +174,8 @@ private:
 
   bool zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr resp);
 
+  bool sendZeroFTCommand();
+
   bool setGravity(rightbot_interfaces::srv::UrSetGravity::Request::SharedPtr req, rightbot_interfaces::srv::UrSetGravity::Response::SharedPtr resp);
 
   bool setToolContact(rightbot_interfaces::srv::UrSetToolContact::Request::SharedPtr req, rightbot_interfaces::srv::UrSetToolContact::Response::SharedPtr resp);

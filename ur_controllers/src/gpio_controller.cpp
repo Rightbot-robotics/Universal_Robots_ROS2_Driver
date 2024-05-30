@@ -818,9 +818,14 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
     15.0,
     [&]() {
       loop_break_condition = false;
-      if(payload_estimation_execution_state != UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_ESTIMATING)
+      if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_INACTIVE)
       {
-        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is not ESTIMATING");
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is not INACTIVE");
+        loop_break_condition = true;
+      }
+      if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_TCP_ZERO_VEL)
+      {
+        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is not TCP_ZERO_VEL");
         loop_break_condition = true;
       }
       if(state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0) {
@@ -895,9 +900,15 @@ bool GPIOController::setBoxSlipDetection(const rightbot_interfaces::srv::UrDetec
   return true;
 }
 
-bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
-                                  std_srvs::srv::Trigger::Response::SharedPtr resp)
+bool GPIOController::sendZeroFTCommand()
 {
+  bool result = true;
+  std::vector<double> compensated_force_vector(3, 0.0);
+  for(int i = 0; i < 3; i++) {
+    compensated_force_vector[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_FT_COMP + i].get_value();
+  }
+  RCLCPP_INFO(get_node()->get_logger(), "Initial compensated force vector: %f %f %f", compensated_force_vector[0], compensated_force_vector[1], compensated_force_vector[2]);
+
   // reset success flag
   command_interfaces_[CommandInterfaces::ZERO_FTSENSOR_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
   // call the service in the hardware
@@ -909,7 +920,7 @@ bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*r
                                           "mocked interface)");
   }
 
-  resp->success = static_cast<bool>(command_interfaces_[CommandInterfaces::ZERO_FTSENSOR_ASYNC_SUCCESS].get_value());
+  result = static_cast<bool>(command_interfaces_[CommandInterfaces::ZERO_FTSENSOR_ASYNC_SUCCESS].get_value());
 
   double compensated_resultant_force = 0.0, force_compenent;
   if (!waitForCondition(
@@ -917,17 +928,48 @@ bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*r
       compensated_resultant_force = 0.0;
       for(int i = 0; i < 3; i++) {
         force_compenent = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_FT_COMP + i].get_value();
+        compensated_force_vector[i] = force_compenent;
         compensated_resultant_force += force_compenent * force_compenent;
       }
+      compensated_resultant_force = std::sqrt(compensated_resultant_force);
       return (compensated_resultant_force < 5.0);
     },
-    2.0
+    0.1
   )) {
     RCLCPP_ERROR(get_node()->get_logger(), "Timeout: Could not zero the force torque sensor");
-    resp->success = false;
+    result = false;
   }
 
   RCLCPP_INFO(get_node()->get_logger(), "Compensated resultant force: %f", compensated_resultant_force);
+
+  double tcp_speed = 0.0, speed_component;
+  for(int i = 0; i < 3; i++) {
+    speed_component  = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_SPEED + i].get_value();
+    tcp_speed += speed_component * speed_component;
+  }
+  tcp_speed = std::sqrt(tcp_speed);
+  if (tcp_speed > 0.01) {
+    RCLCPP_WARN(get_node()->get_logger(), "TCP is moving");
+  }
+
+  RCLCPP_INFO(get_node()->get_logger(), "Final compensated force vector: %f %f %f", compensated_force_vector[0], compensated_force_vector[1], compensated_force_vector[2]);
+
+  return result;
+}
+
+bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
+                                  std_srvs::srv::Trigger::Response::SharedPtr resp)
+{
+  RCLCPP_INFO(get_node()->get_logger(), "Received request to zero the force torque sensor");
+  int retries = 1;
+  int current_try = 1;
+
+  resp->success = false;
+  while(!resp->success && current_try < (1 + retries))
+  {
+    resp->success = sendZeroFTCommand();
+    current_try++;
+  } 
 
   if (resp->success) {
     RCLCPP_INFO(get_node()->get_logger(), "Successfully zeroed the force torque sensor");
