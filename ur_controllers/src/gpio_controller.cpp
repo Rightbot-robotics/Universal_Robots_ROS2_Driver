@@ -962,6 +962,7 @@ bool GPIOController::sendZeroFTCommand()
 bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
                                   std_srvs::srv::Trigger::Response::SharedPtr resp)
 {
+  auto start_time = std::chrono::system_clock::now();
   RCLCPP_INFO(get_node()->get_logger(), "Received request to zero the force torque sensor");
   int retries = 7;
   int current_try = 0;
@@ -975,6 +976,10 @@ bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*r
       RCLCPP_INFO(get_node()->get_logger(), "Retrying to zero the force torque sensor. Attempting retry");
     }
   } 
+
+  auto end_time = std::chrono::system_clock::now();
+  std::chrono::duration<double> elapsed_seconds = end_time - start_time;
+  RCLCPP_INFO(get_node()->get_logger(), "Time elapsed for zero ft: %f", elapsed_seconds.count());
 
   if (resp->success) {
     RCLCPP_INFO(get_node()->get_logger(), "Successfully zeroed the force torque sensor");
