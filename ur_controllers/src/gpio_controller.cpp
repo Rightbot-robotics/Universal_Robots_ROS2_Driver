@@ -934,7 +934,9 @@ bool GPIOController::sendZeroFTCommand()
       compensated_resultant_force = std::sqrt(compensated_resultant_force);
       return (compensated_resultant_force < 5.0);
     },
-    0.1
+    0.05,
+    []() { return false; },
+    5
   )) {
     RCLCPP_ERROR(get_node()->get_logger(), "Timeout: Could not zero the force torque sensor");
     result = false;
@@ -961,7 +963,7 @@ bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*r
                                   std_srvs::srv::Trigger::Response::SharedPtr resp)
 {
   RCLCPP_INFO(get_node()->get_logger(), "Received request to zero the force torque sensor");
-  int retries = 1;
+  int retries = 7;
   int current_try = 0;
 
   resp->success = false;
