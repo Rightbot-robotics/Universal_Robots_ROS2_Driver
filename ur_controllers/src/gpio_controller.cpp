@@ -820,12 +820,12 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
       loop_break_condition = false;
       if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_INACTIVE)
       {
-        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is not INACTIVE");
+        RCLCPP_ERROR(get_node()->get_logger(), "Payload estimation state is INACTIVE");
         loop_break_condition = true;
       }
       if(payload_estimation_execution_state == UrPayloadInfo::PAYLOAD_ESTIMATION_STATE_TCP_ZERO_VEL)
       {
-        RCLCPP_INFO(get_node()->get_logger(), "Payload estimation state is not TCP_ZERO_VEL");
+        RCLCPP_ERROR(get_node()->get_logger(), "Payload estimation state is TCP_ZERO_VEL");
         loop_break_condition = true;
       }
       if(state_interfaces_[StateInterfaces::SAFETY_MODE].get_value() != 1.0) {
@@ -962,13 +962,16 @@ bool GPIOController::zeroFTSensor(std_srvs::srv::Trigger::Request::SharedPtr /*r
 {
   RCLCPP_INFO(get_node()->get_logger(), "Received request to zero the force torque sensor");
   int retries = 1;
-  int current_try = 1;
+  int current_try = 0;
 
   resp->success = false;
   while(!resp->success && current_try < (1 + retries))
   {
-    resp->success = sendZeroFTCommand();
     current_try++;
+    resp->success = sendZeroFTCommand();
+    if(!resp->success && current_try < (1 + retries)) {
+      RCLCPP_INFO(get_node()->get_logger(), "Retrying to zero the force torque sensor. Attempting retry");
+    }
   } 
 
   if (resp->success) {
