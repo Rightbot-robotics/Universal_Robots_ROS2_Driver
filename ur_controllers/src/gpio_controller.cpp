@@ -902,12 +902,17 @@ bool GPIOController::setBoxSlipDetection(const rightbot_interfaces::srv::UrDetec
 
 bool GPIOController::sendZeroFTCommand()
 {
+  RCLCPP_INFO(get_node()->get_logger(), "===> Sending zero force torque command <===");
   bool result = true;
   std::vector<double> compensated_force_vector(3, 0.0);
   for(int i = 0; i < 3; i++) {
     compensated_force_vector[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_FT_COMP + i].get_value();
   }
   RCLCPP_INFO(get_node()->get_logger(), "Initial compensated force vector: %f %f %f", compensated_force_vector[0], compensated_force_vector[1], compensated_force_vector[2]);
+  for(int i = 0; i < 3; i++) {
+    compensated_force_vector[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_RAW_FT + i].get_value();
+  }
+  RCLCPP_INFO(get_node()->get_logger(), "Initial raw force vector: %f %f %f", compensated_force_vector[0], compensated_force_vector[1], compensated_force_vector[2]);
 
   // reset success flag
   command_interfaces_[CommandInterfaces::ZERO_FTSENSOR_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
@@ -955,6 +960,12 @@ bool GPIOController::sendZeroFTCommand()
   }
 
   RCLCPP_INFO(get_node()->get_logger(), "Final compensated force vector: %f %f %f", compensated_force_vector[0], compensated_force_vector[1], compensated_force_vector[2]);
+  for(int i = 0; i < 3; i++) {
+    compensated_force_vector[i] = state_interfaces_[StateInterfaces::PAYLOAD_INFO_UR_RAW_FT + i].get_value();
+  }
+  RCLCPP_INFO(get_node()->get_logger(), "Initial raw force vector: %f %f %f", compensated_force_vector[0], compensated_force_vector[1], compensated_force_vector[2]);
+
+  RCLCPP_INFO(get_node()->get_logger(), "===> Zero FT sensor result: %s <===", result ? "success" : "failed");
 
   return result;
 }
