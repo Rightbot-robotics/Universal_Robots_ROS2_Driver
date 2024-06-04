@@ -846,6 +846,8 @@ bool GPIOController::setDynamicPayload(const rightbot_interfaces::srv::UrSetDyna
   }
   RCLCPP_INFO(get_node()->get_logger(), "Payload estimation succeeded");
 
+  RCLCPP_INFO(get_node()->get_logger(), "Final payload value: %f", state_interfaces_[StateInterfaces::PAYLOAD_INFO_TARGET_PAYLOD].get_value());
+
   resp->status = static_cast<bool>(command_interfaces_[CommandInterfaces::DYNAMIC_PAYLOAD_ASYNC_SUCCESS].get_value());
 
   auto end_time = std::chrono::system_clock::now();
